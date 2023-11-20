@@ -76,7 +76,7 @@ function processLink(opts, isVerbose)
 
    if (typeof opts?.link === 'string')
    {
-      const entries = new Set(opts.link.split(' '));
+      const entries = new Set(opts.link.split(','));
 
       // Detect when dom and worker are configured together as they are exclusive.
       if (entries.has('dom') && entries.has('worker'))
