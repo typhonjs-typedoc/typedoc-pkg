@@ -1,0 +1,52 @@
+{
+  "name": "@typhonjs-typedoc/typedoc-d-ts",
+  "description": "Provides a CLI / no config way to create API documentation with TypeDoc from Typescript declarations.",
+  "version": "0.0.0",
+  "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
+  "type": "module",
+  "bin": "./src/cli/index.js",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "contributors": [
+    "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)"
+  ],
+  "dependencies": {
+    "@typhonjs-utils/file-util": "^0.0.10",
+    "@typhonjs-utils/package-json": "^0.6.0",
+    "@typhonjs-config/eslint-config": "^0.6.0",
+    "@typhonjs-typedoc/typedoc-theme-dmt": "0.0.0",
+    "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
+    "resolve.exports": "^2.0.2",
+    "sade": "^1.8.1",
+    "typedoc": "0.24.8"
+  },
+  "devDependencies": {
+    "eslint": "^8.53.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "/src"
+  ],
+  "homepage": "https://github.com/typhonjs-typedoc/typedoc-d-ts#readme",
+  "keywords": [
+    "typhonjs",
+    "typedoc",
+    "documentation",
+    "cli",
+    "d.ts",
+    "dts",
+    "declarations"
+  ],
+  "license": "MPL-2.0",
+  "repository": "github:typhonjs-typedoc/typedoc-d-ts",
+  "bugs": "https://github.com/typhonjs-typedoc/typedoc-d-ts/issues",
+  "scripts": {
+    "eslint": "eslint .",
+    "cli-test": "node ./src/cli/index.js",
+    "cli-test-opts": "node ./src/cli/index.js -o docs-test",
+    "cli-test-opts2": "node ./src/cli/index.js -p src2"
+  }
+}
