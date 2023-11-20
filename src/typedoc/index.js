@@ -1,11 +1,13 @@
-import {
-   Application,
-   TSConfigReader }        from 'typedoc';
+import fs               from 'node:fs';
+
+import { Application }  from 'typedoc';
+
+import ts               from 'typescript';
 
 /**
  * Generate docs
  *
- * @param {ProcessedOptions} config - The processed CLI options.
+ * @param {import('../cli').ProcessedOptions} config - The processed CLI options.
  *
  * @returns {Promise<void>}
  */
@@ -13,38 +15,15 @@ export async function generateDocs(config)
 {
    // Create a new TypeDoc application instance
    const app = new Application();
-// console.log(`!! generateDocs - config: `, config)
-   // Set TypeDoc options
-   // app.options.addReader(new TSConfigReader());
-console.log(`!! process.cwd: `, process.cwd())
-   app.options.setCompilerOptions(config.entryPoints, {
-      module: 7, //"es2022",
-      target: 9, //"es2022",
-      noImplicitAny: true,
-      rootDir: process.cwd(),
-      sourceMap: false,
-      moduleResolution: 99, //"NodeNext",
-      lib: ['lib.dom.d.ts', 'lib.es2022.d.ts'],
-   }, [])
+
+   const dmtFavicon = fs.existsSync('favicon.ico') ? './favicon.ico' : void 0;
 
    await app.bootstrapWithPlugins({
-      name: 'TyphonJS Runtime Library (FVTT)',
-
-      // compilerOptions: {
-      // },
-
-      // includes: [
-      //    ...config.entryPoints
-      // ],
-
-      // Provide a link for the title / name.
-      // titleLink: '',
-
       // Disables the source links as they reference the d.ts files.
       disableSources: true,
 
-      // TODO: Sets favicon.
-      // dmtFavicon: './assets/icons/favicon.ico',
+      // Set favicon.
+      dmtFavicon,
 
       // Removes the default module page including from navigation & breadcrumbs
       dmtRemoveDefaultModule: true,
@@ -57,12 +36,6 @@ console.log(`!! process.cwd: `, process.cwd())
       // Excludes any private members including the `#private;` member added by Typescript.
       excludePrivate: true,
 
-      // For Typedoc v0.24+; sorts the main index for a namespace; not the sidebar tab.
-      // groupOrder,
-
-      // Sorts the sidebar symbol types.
-      // kindSortOrder,
-
       // Hide the documentation generator footer.
       hideGenerator: true,
 
@@ -74,9 +47,6 @@ console.log(`!! process.cwd: `, process.cwd())
          fullTree: true
       },
 
-      // Provides links for the top nav bar
-      // navigationLinks,
-
       // Output directory for the generated documentation
       out: config.out,
 
@@ -85,17 +55,24 @@ console.log(`!! process.cwd: `, process.cwd())
          ...config.linkPlugins
       ],
 
-      // Boosts relevance for classes and function in search.
-      // searchGroupBoosts,
-
       theme: 'default-modern',
 
-      // Only show the `inherited` filter.
+      // Only show the `inherited` and `protected` filters.
       visibilityFilters: {
          inherited: true,
          protected: true
       }
    });
+
+   // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
+   app.options.setCompilerOptions(config.entryPoints, {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+      noEmit: true,
+      noImplicitAny: true,
+      sourceMap: false,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+   }, []);
 
    // Convert TypeScript sources to a TypeDoc ProjectReflection
    const project = app.convert();
@@ -107,6 +84,6 @@ console.log(`!! process.cwd: `, process.cwd())
    }
    else
    {
-      console.error('Error: No project generated');
+      console.log('[33m[typedoc-d-ts] Warning: No project generated[0m');
    }
 }

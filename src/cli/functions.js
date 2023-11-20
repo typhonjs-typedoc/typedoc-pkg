@@ -43,7 +43,7 @@ export async function generate(opts)
 async function processOptions(opts)
 {
    /** @type {ProcessedOptions} */
-   let config = {};
+   const config = {};
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
@@ -61,6 +61,15 @@ const s_LINK_PLUGINS = new Map([
    ['worker', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/worker/2023']
 ]);
 
+/**
+ * Processes `opts.link` to find the appropriate link plugins.
+ *
+ * @param {object}   opts - CLI options.
+ *
+ * @param {boolean}  isVerbose - Verbose state.
+ *
+ * @returns {string[]} List of link plugins enabled.
+ */
 function processLink(opts, isVerbose)
 {
    const plugins = [];
@@ -79,7 +88,7 @@ function processLink(opts, isVerbose)
       {
          if (!s_LINK_PLUGINS.has(entry))
          {
-            warn(`API Link warning: Unknown API link '${entry}'.`)
+            warn(`API Link warning: Unknown API link '${entry}'.`);
             continue;
          }
 
@@ -135,7 +144,7 @@ async function processPath(opts, isVerbose)
    else
    {
       const cwd = process.cwd();
-      const { packageObj, filepath } = getPackageWithPath({ filepath: cwd })
+      const { packageObj, filepath } = getPackageWithPath({ filepath: cwd });
 
       if (!packageObj) { exit(`No 'package.json' found in: \n${cwd}`); }
 
@@ -209,7 +218,7 @@ async function processPath(opts, isVerbose)
 
    if (dtsPaths.size === 0)
    {
-      warn(`No Typescript declarations found to load for documentation generation.`)
+      warn(`No Typescript declarations found to load for documentation generation.`);
       process.exit(1);
    }
 
@@ -253,6 +262,8 @@ function isDirectory(dirpath)
    {
       exit(err.message);
    }
+
+   return false;
 }
 
 /**
