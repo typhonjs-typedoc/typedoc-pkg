@@ -16,7 +16,8 @@ export async function generateDocs(config)
    // Create a new TypeDoc application instance
    const app = new Application();
 
-   const dmtFavicon = fs.existsSync('favicon.ico') ? './favicon.ico' : void 0;
+   const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
+    fs.existsSync('./assets/icons/favicon.ico') ? './assets/icons/favicon.ico' : void 0;
 
    await app.bootstrapWithPlugins({
       // Disables the source links as they reference the d.ts files.
