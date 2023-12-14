@@ -12,6 +12,8 @@ import { generateDocs }       from '../typedoc/index.js';
 /**
  * @typedef {object} ProcessedOptions
  *
+ * @property {boolean} dmtFlat Module paths should be flattened.
+ *
  * @property {string[]} entryPoints All declaration files to include in doc generation.
  *
  * @property {string[]} linkPlugins All API link plugins to load.
@@ -47,6 +49,7 @@ async function processOptions(opts)
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
+   config.dmtFlat = typeof opts?.['dmt-flat'] === 'boolean' ? opts['dmt-flat'] : false;
    config.entryPoints = await processPath(opts, isVerbose);
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
@@ -113,7 +116,18 @@ async function processPath(opts, isVerbose)
 {
    const dtsPaths = new Set();
 
-   if (typeof opts?.path === 'string')
+   if (typeof opts?.file === 'string')
+   {
+      const filepath = opts.file;
+
+      if (!fs.existsSync(filepath)) { exit(`Invalid options: the 'file' specified does not exist.`); }
+
+      const resolvedPath = path.resolve(filepath);
+      dtsPaths.add(resolvedPath);
+
+      if (isVerbose) { verbose(`Loading declarations from file path specified: \n${resolvedPath}`); }
+   }
+   else if (typeof opts?.path === 'string')
    {
       const dirpath = opts.path;
 

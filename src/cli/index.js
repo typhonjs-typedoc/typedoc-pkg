@@ -12,10 +12,12 @@ const description = `Generate documentation with TypeDoc automatically from 'pac
 const program = sade('typedoc-d-ts', true)
    .version(packageObj?.version)
    .describe(description)
+   .option('-f, --file', `Provide a file path to include a Typescript declaration for documentation generation.`)
+   .option('-l, --link', `Enable API linking; provide a comma separated string including 'dom', 'esm', and 'worker'.`)
    .option('-o, --output', `Provide a directory path for generated documentation; default is 'docs'.`)
    .option('-p, --path', `Provide a directory path to include all Typescript declarations for documentation generation.`)
+   .option('--dmt-flat', `[Default Modern Theme] Package / module paths are flattened.`)
    .option('--verbose', `Verbosely log configuration setup.`)
-   .option('-l, --link', `Enable API linking; provide a comma separated string including 'dom', 'esm', and 'worker'.`)
    .action(generate);
 
 program.parse(process.argv);

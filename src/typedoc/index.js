@@ -16,13 +16,14 @@ export async function generateDocs(config)
    const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
     fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
-   // Create a new TypeDoc application instance
-   const app = await Application.bootstrapWithPlugins({
+   const configDocs = {
       // Disables the source links as they reference the d.ts files.
       disableSources: true,
 
       // Set favicon.
       dmtFavicon,
+
+      dmtModuleAsPackage: true,
 
       entryPoints: config.entryPoints,
 
@@ -50,7 +51,12 @@ export async function generateDocs(config)
          inherited: true,
          protected: true
       }
-   });
+   };
+
+   if (config.dmtFlat) { configDocs.dmtNavModuleDepth = 0; }
+
+   // Create a new TypeDoc application instance
+   const app = await Application.bootstrapWithPlugins(configDocs);
 
    // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
    app.options.setCompilerOptions(config.entryPoints, {
