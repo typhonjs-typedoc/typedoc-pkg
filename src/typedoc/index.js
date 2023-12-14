@@ -63,7 +63,7 @@ export async function generateDocs(config)
    }, []);
 
    // Convert TypeScript sources to a TypeDoc ProjectReflection
-   const project = app.convert();
+   const project = await app.convert();
 
    // Generate the documentation
    if (project)
