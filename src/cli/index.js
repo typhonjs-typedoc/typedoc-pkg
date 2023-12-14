@@ -4,10 +4,10 @@ import sade             from 'sade';
 
 import { generate }     from './functions.js';
 
-// Retrieve the `esm-d-ts` package.
+// Retrieve the `typedoc-pkg` package.
 const packageObj = getPackage({ filepath: import.meta.url });
 
-const description = `Generate documentation automatically from Typescript declarations defined in 'package.json'. By default, 'package.json' is analyzed for export conditions with 'types' defined. You may otherwise specify a path where all Typescript declarations within will be used for generation.`;
+const description = `Generate documentation with TypeDoc automatically from 'package.json' exports conditions. By default, 'package.json' is analyzed for export conditions with 'types' defined. You may otherwise specify a path where all Typescript declarations within will be used for generation.`;
 
 const program = sade('typedoc-d-ts', true)
    .version(packageObj?.version)

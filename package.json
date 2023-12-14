@@ -1,6 +1,6 @@
 {
-  "name": "@typhonjs-typedoc/typedoc-d-ts",
-  "description": "Provides a zero config CLI to create API documentation with TypeDoc from Typescript declarations.",
+  "name": "@typhonjs-typedoc/typedoc-pkg",
+  "description": "Provides a zero config CLI to create API documentation with TypeDoc from `package.json` exports conditions.",
   "version": "0.0.0",
   "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
   "type": "module",
@@ -12,20 +12,20 @@
     "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)"
   ],
   "dependencies": {
-    "@typhonjs-config/eslint-config": "^0.6.0",
     "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
-    "@typhonjs-typedoc/typedoc-theme-dmt": "0.0.0",
+    "@typhonjs-typedoc/typedoc-theme-dmt": "^0.2.0-next.1",
     "@typhonjs-utils/file-util": "^0.0.10",
     "@typhonjs-utils/package-json": "^0.6.0",
     "resolve.exports": "^2.0.2",
     "sade": "^1.8.1",
-    "typedoc": "0.24.8"
+    "typedoc": ">=0.25.1 <0.26.0"
   },
   "devDependencies": {
+    "@typhonjs-config/eslint-config": "^0.6.0",
     "eslint": "^8.53.0"
   },
   "peerDependencies": {
-    "typescript": ">=5.1.0"
+    "typescript": ">=5.1.0 <6"
   },
   "engines": {
     "node": ">=18"

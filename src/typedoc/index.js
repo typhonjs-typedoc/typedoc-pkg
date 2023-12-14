@@ -13,24 +13,16 @@ import ts               from 'typescript';
  */
 export async function generateDocs(config)
 {
-   // Create a new TypeDoc application instance
-   const app = new Application();
-
    const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
-    fs.existsSync('./assets/icons/favicon.ico') ? './assets/icons/favicon.ico' : void 0;
+    fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
-   await app.bootstrapWithPlugins({
+   // Create a new TypeDoc application instance
+   const app = await Application.bootstrapWithPlugins({
       // Disables the source links as they reference the d.ts files.
       disableSources: true,
 
       // Set favicon.
       dmtFavicon,
-
-      // Removes the default module page including from navigation & breadcrumbs
-      dmtRemoveDefaultModule: true,
-
-      // Removes the top level navigation sidebar namespace SVG icon associated with the sub-path exports.
-      dmtRemoveNavTopLevelIcon: true,
 
       entryPoints: config.entryPoints,
 
@@ -42,11 +34,6 @@ export async function generateDocs(config)
 
       // Sets log level.
       logLevel: config.logLevel,
-
-      // New option in 0.24.8 required to render full navigation tree.
-      navigation: {
-         fullTree: true
-      },
 
       // Output directory for the generated documentation
       out: config.out,
