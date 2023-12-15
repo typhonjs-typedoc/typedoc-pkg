@@ -16,6 +16,8 @@ import { generateDocs }       from '../typedoc/index.js';
  *
  * @property {string[]} entryPoints All declaration files to include in doc generation.
  *
+ * @property {boolean} fromPackageExports Indicates that the entry point files are from package exports.
+ *
  * @property {string[]} linkPlugins All API link plugins to load.
  *
  * @property {number} logLevel TypeDoc log level.
@@ -45,12 +47,14 @@ export async function generate(opts)
 async function processOptions(opts)
 {
    /** @type {ProcessedOptions} */
-   const config = {};
+   const config = {
+      fromPackageExports: false
+   };
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
    config.dmtFlat = typeof opts?.['dmt-flat'] === 'boolean' ? opts['dmt-flat'] : false;
-   config.entryPoints = await processPath(opts, isVerbose);
+   config.entryPoints = await processPath(opts, config, isVerbose);
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.logLevel = isVerbose ? LogLevel.Verbose : LogLevel.Info;
@@ -106,13 +110,15 @@ function processLink(opts, isVerbose)
 /**
  * Process `opts.path` or default `package.json` lookup.
  *
- * @param {object}   opts - CLI options.
+ * @param {object}            opts - CLI options.
  *
- * @param {boolean}  isVerbose - Verbose logging.
+ * @param {ProcessedOptions}  config - Processed Options.
+ *
+ * @param {boolean}           isVerbose - Verbose logging.
  *
  * @returns {Promise<string[]>} Array of DTS file paths.
  */
-async function processPath(opts, isVerbose)
+async function processPath(opts, config, isVerbose)
 {
    const dtsPaths = new Set();
 
@@ -157,6 +163,8 @@ async function processPath(opts, isVerbose)
    }
    else
    {
+      config.fromPackageExports = true;
+
       const cwd = process.cwd();
       const { packageObj, filepath } = getPackageWithPath({ filepath: cwd });
 

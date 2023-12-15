@@ -13,17 +13,45 @@ import ts               from 'typescript';
  */
 export async function generateDocs(config)
 {
-   const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
-    fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
+   // Create a new TypeDoc application instance
+   const app = await Application.bootstrapWithPlugins(createConfig(config));
 
+   // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
+   app.options.setCompilerOptions(config.entryPoints, {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+      noEmit: true,
+      noImplicitAny: true,
+      sourceMap: false,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+   }, []);
+
+   // Convert TypeScript sources to a TypeDoc ProjectReflection
+   const project = await app.convert();
+
+   // Generate the documentation
+   if (project)
+   {
+      await app.generateDocs(project, config.out);
+   }
+   else
+   {
+      console.log('[33m[typedoc-d-ts] Warning: No project generated[0m');
+   }
+}
+
+/**
+ * Create the TypeDoc configuration.
+ *
+ * @param {import('../cli').ProcessedOptions}  config - Processed CLI options.
+ *
+ * @returns {object} TypeDoc configuration.
+ */
+function createConfig(config)
+{
    const configDocs = {
       // Disables the source links as they reference the d.ts files.
       disableSources: true,
-
-      // Set favicon.
-      dmtFavicon,
-
-      dmtModuleAsPackage: true,
 
       entryPoints: config.entryPoints,
 
@@ -53,31 +81,30 @@ export async function generateDocs(config)
       }
    };
 
-   if (config.dmtFlat) { configDocs.dmtNavModuleDepth = 0; }
+   // Set any extra options for DMT.
+   if (configDocs.theme === 'default-modern') { setDMTOptions(config, configDocs); }
 
-   // Create a new TypeDoc application instance
-   const app = await Application.bootstrapWithPlugins(configDocs);
+   return configDocs;
+}
 
-   // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
-   app.options.setCompilerOptions(config.entryPoints, {
-      module: ts.ModuleKind.ES2022,
-      target: ts.ScriptTarget.ES2022,
-      noEmit: true,
-      noImplicitAny: true,
-      sourceMap: false,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-   }, []);
+/**
+ * Set DMT options from CLI options.
+ *
+ * @param {import('../cli').ProcessedOptions}   config - CLI options.
+ *
+ * @param {object}   configDocs - TypeDoc config.
+ */
+function setDMTOptions(config, configDocs)
+{
+   const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
+    fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
-   // Convert TypeScript sources to a TypeDoc ProjectReflection
-   const project = await app.convert();
+   if (configDocs.dmtFavicon === void 0) { configDocs.dmtFavicon = dmtFavicon; }
 
-   // Generate the documentation
-   if (project)
+   if (configDocs.dmtNavModuleDepth === void 0 && config.dmtFlat) { configDocs.dmtNavModuleDepth = 0; }
+
+   if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackageExports)
    {
-      await app.generateDocs(project, config.out);
-   }
-   else
-   {
-      console.log('[33m[typedoc-d-ts] Warning: No project generated[0m');
+      configDocs.dmtModuleAsPackage = true;
    }
 }
