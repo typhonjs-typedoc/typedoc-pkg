@@ -68,11 +68,6 @@ function createConfig(config)
       // Output directory for the generated documentation
       out: config.out,
 
-      plugin: [
-         '@typhonjs-typedoc/typedoc-theme-dmt',
-         ...config.linkPlugins
-      ],
-
       theme: 'default-modern',
 
       // Only show the `inherited` and `protected` filters.
@@ -87,6 +82,12 @@ function createConfig(config)
     config.packageObj['typedoc-pkg'] : {};
 
    const configDocs = Object.assign(configDefault, pkgTypedocConfig);
+
+   // Ensure that `plugins` is defined.
+   if (!Array.isArray(configDocs.plugin)) { configDocs.plugin = []; }
+
+   // Add any API link plugins.
+   configDocs.plugin.push(...config.linkPlugins);
 
    // Set any extra options for DMT.
    if (configDocs.theme === 'default-modern') { setDMTOptions(config, configDocs); }
@@ -103,6 +104,12 @@ function createConfig(config)
  */
 function setDMTOptions(config, configDocs)
 {
+   // Add DMT theme plugin.
+   if (!configDocs.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
+   {
+      configDocs.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
+   }
+
    const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
     fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
