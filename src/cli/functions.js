@@ -38,7 +38,7 @@ async function processOptions(opts)
    /** @type {Partial<ProcessedOptions>} */
    const config = {
       cwd,
-      fromPackageExports: false,
+      fromPackage: false,
       packageObj,
       packageFilepath: filepath
    };
@@ -155,7 +155,7 @@ async function processPath(opts, config, isVerbose)
    }
    else
    {
-      config.fromPackageExports = true;
+      config.fromPackage = true;
 
       const packageObj = config.packageObj;
 
@@ -323,7 +323,7 @@ function warn(message)
  *
  * @property {string[]} entryPoints All declaration files to include in doc generation.
  *
- * @property {boolean} fromPackageExports Indicates that the entry point files are from package exports.
+ * @property {boolean} fromPackage Indicates that the entry point files are from package exports.
  *
  * @property {string[]} linkPlugins All API link plugins to load.
  *

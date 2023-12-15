@@ -110,6 +110,7 @@ function setDMTOptions(config, configDocs)
       configDocs.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
    }
 
+   // Automatic check for local `favicon.ico`.
    const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
     fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
@@ -117,7 +118,7 @@ function setDMTOptions(config, configDocs)
 
    if (configDocs.dmtNavModuleDepth === void 0 && config.dmtFlat) { configDocs.dmtNavModuleDepth = 0; }
 
-   if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackageExports)
+   if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackage)
    {
       configDocs.dmtModuleAsPackage = true;
    }
