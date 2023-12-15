@@ -5,6 +5,7 @@ import { getFileList }        from '@typhonjs-utils/file-util';
 import { getPackageWithPath } from '@typhonjs-utils/package-json';
 import * as resolvePkg        from 'resolve.exports';
 
+import ts                     from 'typescript';
 import { LogLevel }           from 'typedoc';
 
 import { generateDocs }       from '../typedoc/index.js';
@@ -45,6 +46,7 @@ async function processOptions(opts)
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
+   config.compilerOptions = processTSConfig(opts, config, isVerbose);
    config.dmtFlat = typeof opts?.['dmt-flat'] === 'boolean' ? opts['dmt-flat'] : false;
    config.entryPoints = await processPath(opts, config, isVerbose);
    config.linkPlugins = processLink(opts, isVerbose);
@@ -238,6 +240,76 @@ async function processPath(opts, config, isVerbose)
    return [...dtsPaths];
 }
 
+/**
+ * Creates the Typescript compiler options from default values and / or `tsconfig` CLI option.
+ *
+ * @param {object}            opts - CLI options.
+ *
+ * @param {ProcessedOptions}  config - Processed config options.
+ *
+ * @param {boolean}           isVerbose - Verbose logging.
+ *
+ * @returns {ts.CompilerOptions} Processed Typescript compiler options.
+ */
+function processTSConfig(opts, config, isVerbose)
+{
+   let tsconfigPath;
+
+   // Verify any tsconfig provided path.
+   if (opts.tsconfig)
+   {
+      if (fs.existsSync(opts.tsconfig)) { tsconfigPath = opts.tsconfig; }
+      else
+      {
+         exit(`error: Aborting as 'tsconfig' path is specified, but file does not exist; '${opts.tsconfig}'`);
+      }
+   }
+
+   /** @type {import('type-fest').TsConfigJson.CompilerOptions} */
+   const defaultCompilerOptions = {
+      module: 'ES2022',
+      target: 'ES2022',
+      noEmit: true,
+      noImplicitAny: true,
+      sourceMap: false,
+      moduleResolution: 'Bundler'
+   };
+
+   /** @type {import('type-fest').TsConfigJson.CompilerOptions} */
+   let tsconfigCompilerOptions = {};
+
+   if (tsconfigPath)
+   {
+      if (isVerbose) { verbose(`Loading TS compiler options from 'tsconfig' path: ${tsconfigPath}`); }
+
+      try
+      {
+         const configJSON = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8').toString());
+         if (configJSON?.compilerOptions) { tsconfigCompilerOptions = configJSON.compilerOptions; }
+      }
+      catch (err)
+      {
+         exit(`Aborting as 'tsconfig' path is specified, but failed to load; '${
+          err.message}'\ntsconfig path: ${tsconfigPath};`);
+      }
+   }
+
+   // ----------------------------------------------------------------------------------------------------------------
+
+   /** @type {import('type-fest').TsConfigJson.CompilerOptions} */
+   const compilerOptionsJson = Object.assign(defaultCompilerOptions, tsconfigCompilerOptions);
+
+   // Validate compiler options with Typescript.
+   const compilerOptions = validateCompilerOptions(compilerOptionsJson);
+
+   // Return now if compiler options failed to validate.
+   if (!compilerOptions)
+   {
+      exit(`Aborting as 'config.compilerOptions' failed validation.`);
+   }
+
+   return compilerOptions;
+}
 
 /**
  * @param {string}   filepath - Path to check.
@@ -280,6 +352,41 @@ function isDirectory(dirpath)
 }
 
 /**
+ * Validates the TS compiler options.
+ *
+ * @param {import('type-fest').TsConfigJson.CompilerOptions} compilerOptions - The TS compiler options.
+ *
+ * @returns {ts.CompilerOptions} The validated compiler options or undefined if failure.
+ */
+function validateCompilerOptions(compilerOptions)
+{
+   // Validate `config.compilerOptions` ------------------------------------------------------------------------------
+
+   // Use the current working directory as the base path.
+   const basePath = process.cwd();
+
+   const { options, errors } = ts.convertCompilerOptionsFromJson(compilerOptions, basePath);
+
+   if (errors.length > 0)
+   {
+      for (const err of errors) { error(`[TS] ${ts.flattenDiagnosticMessageText(err.messageText, '\n')}`); }
+      return void 0;
+   }
+
+   return options;
+}
+
+/**
+ * Log an error message.
+ *
+ * @param {string} message - A message.
+ */
+function error(message)
+{
+   console.error(`[31m[typedoc-pkg] ${message}[0m`);
+}
+
+/**
  * Exit with error message.
  *
  * @param {string} message - A message.
@@ -288,7 +395,7 @@ function isDirectory(dirpath)
  */
 function exit(message, exit = true)
 {
-   console.error(`[31m[typedoc-d-ts] ${message}[0m`);
+   console.error(`[31m[typedoc-pkg] ${message}[0m`);
    if (exit) { process.exit(1); }
 }
 
@@ -299,7 +406,7 @@ function exit(message, exit = true)
  */
 function verbose(message)
 {
-   console.log(`[35m[typedoc-d-ts] ${message}[0m`);
+   console.log(`[35m[typedoc-pkg] ${message}[0m`);
 }
 
 /**
@@ -309,13 +416,15 @@ function verbose(message)
  */
 function warn(message)
 {
-   console.warn(`[33m[typedoc-d-ts] ${message}[0m`);
+   console.warn(`[33m[typedoc-pkg] ${message}[0m`);
 }
 
 /**
  * @typedef {object} ProcessedOptions
  *
  * @property {boolean} allDTSFiles When true all entry point files are Typescript declarations.
+ *
+ * @property {ts.CompilerOptions} compilerOptions Typescript compiler options.
  *
  * @property {string} cwd Current Working Directory.
  *

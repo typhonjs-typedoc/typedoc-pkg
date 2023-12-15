@@ -2,8 +2,6 @@ import fs               from 'node:fs';
 
 import { Application }  from 'typedoc';
 
-import ts               from 'typescript';
-
 /**
  * Generate docs
  *
@@ -17,14 +15,7 @@ export async function generateDocs(config)
    const app = await Application.bootstrapWithPlugins(createConfig(config));
 
    // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
-   app.options.setCompilerOptions(config.entryPoints, {
-      module: ts.ModuleKind.ES2022,
-      target: ts.ScriptTarget.ES2022,
-      noEmit: true,
-      noImplicitAny: true,
-      sourceMap: false,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-   }, []);
+   app.options.setCompilerOptions(config.entryPoints, config.compilerOptions, []);
 
    // Convert TypeScript sources to a TypeDoc ProjectReflection
    const project = await app.convert();
@@ -36,9 +27,11 @@ export async function generateDocs(config)
    }
    else
    {
-      console.log('[33m[typedoc-d-ts] Warning: No project generated[0m');
+      console.log('[33m[typedoc-pkg] Warning: No project generated[0m');
    }
 }
+
+// Internal implementation -------------------------------------------------------------------------------------------
 
 /**
  * Create the TypeDoc configuration.
