@@ -49,7 +49,8 @@ export async function generateDocs(config)
  */
 function createConfig(config)
 {
-   const configDocs = {
+   /** @type {Partial<import('typedoc').TypeDocOptions>} */
+   const configDefault = {
       // Disables the source links as they reference the d.ts files.
       disableSources: true,
 
@@ -80,6 +81,12 @@ function createConfig(config)
          protected: true
       }
    };
+
+   // Load any `typedoc` options via `typedoc-pkg` property in `package.json`.
+   const pkgTypedocConfig = typeof config?.packageObj?.['typedoc-pkg'] === 'object' ?
+    config.packageObj['typedoc-pkg'] : {};
+
+   const configDocs = Object.assign(configDefault, pkgTypedocConfig);
 
    // Set any extra options for DMT.
    if (configDocs.theme === 'default-modern') { setDMTOptions(config, configDocs); }

@@ -10,22 +10,6 @@ import { LogLevel }           from 'typedoc';
 import { generateDocs }       from '../typedoc/index.js';
 
 /**
- * @typedef {object} ProcessedOptions
- *
- * @property {boolean} dmtFlat Module paths should be flattened.
- *
- * @property {string[]} entryPoints All declaration files to include in doc generation.
- *
- * @property {boolean} fromPackageExports Indicates that the entry point files are from package exports.
- *
- * @property {string[]} linkPlugins All API link plugins to load.
- *
- * @property {number} logLevel TypeDoc log level.
- *
- * @property {string} out Documentation output directory.
- */
-
-/**
  * Processes CLI options and invokes TypeDoc.
  *
  * @param {object}   opts - CLI options.
@@ -46,9 +30,17 @@ export async function generate(opts)
  */
 async function processOptions(opts)
 {
-   /** @type {ProcessedOptions} */
+   const cwd = process.cwd();
+
+   // Find local `package.json` only.
+   const { packageObj, filepath } = getPackageWithPath({ filepath: cwd, basepath: cwd });
+
+   /** @type {Partial<ProcessedOptions>} */
    const config = {
-      fromPackageExports: false
+      cwd,
+      fromPackageExports: false,
+      packageObj,
+      packageFilepath: filepath
    };
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
@@ -108,7 +100,7 @@ function processLink(opts, isVerbose)
 }
 
 /**
- * Process `opts.path` or default `package.json` lookup.
+ * Process `opts.file` or `opts.path` or default `package.json` lookup.
  *
  * @param {object}            opts - CLI options.
  *
@@ -165,10 +157,9 @@ async function processPath(opts, config, isVerbose)
    {
       config.fromPackageExports = true;
 
-      const cwd = process.cwd();
-      const { packageObj, filepath } = getPackageWithPath({ filepath: cwd });
+      const packageObj = config.packageObj;
 
-      if (!packageObj) { exit(`No 'package.json' found in: \n${cwd}`); }
+      if (!packageObj) { exit(`No 'package.json' found in: \n${config.cwd}`); }
 
       if (typeof packageObj?.types === 'string')
       {
@@ -200,7 +191,7 @@ async function processPath(opts, config, isVerbose)
       {
          if (typeof packageObj?.exports !== 'object')
          {
-            exit(`No 'exports' conditions found in 'package.json': \n${filepath}`);
+            exit(`No 'exports' conditions found in 'package.json': \n${config.packageFilepath}`);
          }
 
          if (isVerbose) { verbose(`Loading declarations from 'package.json' export conditions:`); }
@@ -321,3 +312,26 @@ function warn(message)
    console.warn(`[33m[typedoc-d-ts] ${message}[0m`);
 }
 
+/**
+ * @typedef {object} ProcessedOptions
+ *
+ * @property {boolean} allDTSFiles When true all entry point files are Typescript declarations.
+ *
+ * @property {string} cwd Current Working Directory.
+ *
+ * @property {boolean} dmtFlat Module paths should be flattened.
+ *
+ * @property {string[]} entryPoints All declaration files to include in doc generation.
+ *
+ * @property {boolean} fromPackageExports Indicates that the entry point files are from package exports.
+ *
+ * @property {string[]} linkPlugins All API link plugins to load.
+ *
+ * @property {number} logLevel TypeDoc log level.
+ *
+ * @property {string} out Documentation output directory.
+ *
+ * @property {object} packageObj Any found package.json object.
+ *
+ * @property {string} packageFilepath File path of found package.json.
+ */
