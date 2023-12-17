@@ -114,7 +114,7 @@ function processLink(opts, isVerbose)
  */
 async function processPath(opts, config, isVerbose)
 {
-   const dtsPaths = new Set();
+   let filepaths = new Set();
 
    if (typeof opts?.file === 'string')
    {
@@ -123,7 +123,7 @@ async function processPath(opts, config, isVerbose)
       if (!fs.existsSync(filepath)) { exit(`Invalid options: the 'file' specified does not exist.`); }
 
       const resolvedPath = path.resolve(filepath);
-      dtsPaths.add(resolvedPath);
+      filepaths.add(resolvedPath);
 
       if (isVerbose) { verbose(`Loading declarations from file path specified: \n${resolvedPath}`); }
    }
@@ -135,8 +135,7 @@ async function processPath(opts, config, isVerbose)
 
       if (!isDirectory(dirpath)) { exit(`Invalid options: the 'path' specified is not a directory.`); }
 
-      // Get all files ending in `.ts` that are not declarations in the entry point folder or sub-folders. These TS files
-      // will be compiled and added to the declaration bundle generated as synthetic wildcard exports.
+      // Get all files ending in `d.ts` folder an sub-folders specified.
       const dtsFilepaths = await getFileList({
          dir: dirpath,
          includeFile: /\.d\.(ts|mts)$/,
@@ -149,8 +148,8 @@ async function processPath(opts, config, isVerbose)
       {
          const resolvedPath = path.resolve(dirpath, dtsPath);
 
-         if (dtsPaths.has(resolvedPath)) { continue; }
-         dtsPaths.add(resolvedPath);
+         if (filepaths.has(resolvedPath)) { continue; }
+         filepaths.add(resolvedPath);
 
          if (isVerbose) { verbose(resolvedPath); }
       }
@@ -198,46 +197,140 @@ async function processPath(opts, config, isVerbose)
 
          if (isVerbose) { verbose(`Loading declarations from 'package.json' export conditions:`); }
 
-         for (const exportPath in packageObj.exports)
+         if (opts.export === 'types')
          {
-            const result = resolvePkg.exports(packageObj, exportPath, { conditions: ['types'] });
-
-            if (!Array.isArray(result) || result.length === 0) { continue; }
-
-            const typesPath = result[0];
-
-            if (typeof typesPath !== 'string') { continue; }
-
-            // Currently `resolve.exports` does not allow filtering out the `default` condition.
-            // See: https://github.com/lukeed/resolve.exports/issues/30
-            if (!typesPath.endsWith('.d.ts') && !typesPath.endsWith('.d.mts') && !typesPath.endsWith('.d.cts'))
-            {
-               continue;
-            }
-
-            if (!isDTSFile(typesPath))
-            {
-               warn(`Warning: export condition is not a file; "${exportPath}": ${typesPath}`);
-               continue;
-            }
-
-            // Consider `dts-buddy` and cases where multiple export conditions point to the same DTS file.
-            if (dtsPaths.has(typesPath)) { continue; }
-
-            dtsPaths.add(path.resolve(typesPath));
-
-            if (isVerbose) { verbose(`"${exportPath}": ${typesPath}`); }
+            filepaths = processExportsTypes(packageObj, isVerbose);
+         }
+         else
+         {
+            filepaths = processExportsCondition(packageObj, opts.export, isVerbose);
          }
       }
    }
 
-   if (dtsPaths.size === 0)
+   if (filepaths.size === 0)
    {
       warn(`No Typescript declarations found to load for documentation generation.`);
       process.exit(1);
    }
 
-   return [...dtsPaths];
+   return [...filepaths];
+}
+
+/**
+ * Generically processes `package.json` exports conditions from user supplied condition.
+ *
+ * @param {object}   packageObj - Package object.
+ *
+ * @param {string}   condition - Export condition to find.
+ *
+ * @param {boolean}  isVerbose - Verbose logging.
+ *
+ * @returns {Set<string>} Resolved file paths for given export condition.
+ */
+function processExportsCondition(packageObj, condition, isVerbose)
+{
+   const filepaths = new Set();
+
+   // Only allow standard JS / TS files.
+   const regex = /\.(js|mjs|ts|mts)$/;
+
+   for (const exportPath in packageObj.exports)
+   {
+      let result;
+
+      try
+      {
+         result = resolvePkg.exports(packageObj, exportPath, { conditions: [condition] });
+      }
+      catch (err)
+      {
+         continue;
+      }
+
+      if (!Array.isArray(result) || result.length === 0) { continue; }
+
+      const filepath = result[0];
+
+      if (typeof filepath !== 'string') { continue; }
+
+      if (!regex.test(filepath)) { continue; }
+
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
+
+      // TODO: There is no check here to ensure that the 'default' condition isn't used or determine the type of file.
+
+      if (!isFile(filepath))
+      {
+         warn(`Warning: export condition is not a file; "${exportPath}": ${filepath}`);
+         continue;
+      }
+
+      if (filepaths.has(filepath)) { continue; }
+
+      filepaths.add(path.resolve(filepath));
+
+      if (isVerbose) { verbose(`"${exportPath}": ${filepath}`); }
+   }
+
+   return filepaths;
+}
+
+/**
+ * Specifically parse the `types` export condition with a few extra sanity checks.
+ *
+ * @param {object}   packageObj - Package object.
+ *
+ * @param {boolean}  isVerbose - Verbose logging.
+ *
+ * @returns {Set<string>} Resolved file paths for given export condition.
+ */
+function processExportsTypes(packageObj, isVerbose)
+{
+   const dtsPaths = new Set();
+
+   for (const exportPath in packageObj.exports)
+   {
+      let result;
+
+      try
+      {
+         result = resolvePkg.exports(packageObj, exportPath, { conditions: ['types'] });
+      }
+      catch (err)
+      {
+         continue;
+      }
+
+      if (!Array.isArray(result) || result.length === 0) { continue; }
+
+      const typesPath = result[0];
+
+      if (typeof typesPath !== 'string') { continue; }
+
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
+      if (!typesPath.endsWith('.d.ts') && !typesPath.endsWith('.d.mts') && !typesPath.endsWith('.d.cts'))
+      {
+         continue;
+      }
+
+      if (!isDTSFile(typesPath))
+      {
+         warn(`Warning: export condition is not a file; "${exportPath}": ${typesPath}`);
+         continue;
+      }
+
+      // Consider `dts-buddy` and cases where multiple export conditions point to the same DTS file.
+      if (dtsPaths.has(typesPath)) { continue; }
+
+      dtsPaths.add(path.resolve(typesPath));
+
+      if (isVerbose) { verbose(`"${exportPath}": ${typesPath}`); }
+   }
+
+   return dtsPaths;
 }
 
 /**
@@ -316,19 +409,28 @@ function processTSConfig(opts, config, isVerbose)
  *
  * @returns {boolean} Returns if the given path is a file.
  */
-function isDTSFile(filepath)
+function isFile(filepath)
 {
    try
    {
       const stats = fs.statSync(filepath);
-      if (!stats.isFile()) { return false; }
+      return stats.isFile();
    }
    catch (err)
    {
       return false;
    }
+}
 
-   return !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
+/**
+ * @param {string}   filepath - Path to check.
+ *
+ * @returns {boolean} Returns if the given path is a file.
+ */
+function isDTSFile(filepath)
+{
+   return isFile(filepath) &&
+    !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
 }
 
 /**
@@ -345,10 +447,8 @@ function isDirectory(dirpath)
    }
    catch (err)
    {
-      exit(err.message);
+      return false;
    }
-
-   return false;
 }
 
 /**
