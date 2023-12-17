@@ -11,8 +11,8 @@ import { Application }  from 'typedoc';
  */
 export async function generateDocs(config)
 {
-   // Create a new TypeDoc application instance
-   const app = await Application.bootstrapWithPlugins(createConfig(config));
+   // Create a new TypeDoc application instance with no default config readers.
+   const app = await Application.bootstrapWithPlugins(createConfig(config), []);
 
    // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
    app.options.setCompilerOptions(config.entryPoints, config.compilerOptions, []);
@@ -71,8 +71,8 @@ function createConfig(config)
    };
 
    // Load any `typedoc` options via `typedoc-pkg` property in `package.json`.
-   const pkgTypedocConfig = typeof config?.packageObj?.['typedoc-pkg'] === 'object' ?
-    config.packageObj['typedoc-pkg'] : {};
+   const pkgTypedocConfig = typeof config?.packageObj?.['typedoc'] === 'object' ?
+    config.packageObj['typedoc'] : {};
 
    const configDocs = Object.assign(configDefault, pkgTypedocConfig);
 
