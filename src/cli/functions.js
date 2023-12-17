@@ -362,8 +362,9 @@ function processTSConfig(opts, config, isVerbose)
    const defaultCompilerOptions = {
       module: 'ES2022',
       target: 'ES2022',
+      allowJs: true,
       noEmit: true,
-      noImplicitAny: true,
+      noImplicitAny: false,
       sourceMap: false,
       moduleResolution: 'Bundler'
    };
