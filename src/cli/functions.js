@@ -10,6 +10,9 @@ import { LogLevel }           from 'typedoc';
 
 import { generateDocs }       from '../typedoc/index.js';
 
+// Only allow standard JS / TS files.
+const s_ALLOWED_FILES_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
+
 /**
  * Processes CLI options and invokes TypeDoc.
  *
@@ -116,42 +119,36 @@ async function processPath(opts, config, isVerbose)
 {
    let filepaths = new Set();
 
-   if (typeof opts?.file === 'string')
+   if (typeof opts?.path === 'string')
    {
-      const filepath = opts.file;
+      if (!fs.existsSync(opts.path)) { exit(`Invalid options: the 'path' specified does not exist.`); }
 
-      if (!fs.existsSync(filepath)) { exit(`Invalid options: the 'file' specified does not exist.`); }
-
-      const resolvedPath = path.resolve(filepath);
-      filepaths.add(resolvedPath);
-
-      if (isVerbose) { verbose(`Loading declarations from file path specified: \n${resolvedPath}`); }
-   }
-   else if (typeof opts?.path === 'string')
-   {
-      const dirpath = opts.path;
-
-      if (!fs.existsSync(dirpath)) { exit(`Invalid options: the 'path' specified does not exist.`); }
-
-      if (!isDirectory(dirpath)) { exit(`Invalid options: the 'path' specified is not a directory.`); }
-
-      // Get all files ending in `d.ts` folder an sub-folders specified.
-      const dtsFilepaths = await getFileList({
-         dir: dirpath,
-         includeFile: /\.d\.(ts|mts)$/,
-         walk: true
-      });
-
-      if (isVerbose) { verbose(`Loading declarations from path specified:`); }
-
-      for (const dtsPath of dtsFilepaths)
+      if (isDirectory(opts.path))
       {
-         const resolvedPath = path.resolve(dirpath, dtsPath);
+         if (isVerbose) { verbose(`Loading Typescript declarations from directory path specified:`); }
 
-         if (filepaths.has(resolvedPath)) { continue; }
+         // Get all files ending in `d.ts` folder an sub-folders specified.
+         const dtsFilepaths = await getFileList({
+            dir: opts.path,
+            includeFile: /\.d\.(ts|mts)$/
+         });
+
+         for (const dtsPath of dtsFilepaths)
+         {
+            const resolvedPath = path.resolve(opts.path, dtsPath);
+
+            if (filepaths.has(resolvedPath)) { continue; }
+            filepaths.add(resolvedPath);
+
+            if (isVerbose) { verbose(resolvedPath); }
+         }
+      }
+      else if (isFile(opts.path) && s_ALLOWED_FILES_EXTENSIONS.test(opts.path))
+      {
+         const resolvedPath = path.resolve(opts.path);
          filepaths.add(resolvedPath);
 
-         if (isVerbose) { verbose(resolvedPath); }
+         if (isVerbose) { verbose(`Loading file from path specified:\n${resolvedPath}`); }
       }
    }
    else
@@ -232,8 +229,6 @@ function processExportsCondition(packageObj, condition, isVerbose)
 {
    const filepaths = new Set();
 
-   // Only allow standard JS / TS files.
-   const regex = /\.(js|mjs|ts|mts)$/;
 
    for (const exportPath in packageObj.exports)
    {
@@ -254,7 +249,7 @@ function processExportsCondition(packageObj, condition, isVerbose)
 
       if (typeof filepath !== 'string') { continue; }
 
-      if (!regex.test(filepath)) { continue; }
+      if (!s_ALLOWED_FILES_EXTENSIONS.test(filepath)) { continue; }
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
