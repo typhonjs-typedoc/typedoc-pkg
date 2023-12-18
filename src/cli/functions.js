@@ -8,7 +8,8 @@ import * as resolvePkg        from 'resolve.exports';
 import ts                     from 'typescript';
 import { LogLevel }           from 'typedoc';
 
-import { generateDocs }       from '../typedoc/index.js';
+import { generateDocs }       from '../ty    "typedoc": ">=0.25.1 <0.26.0"
+pedoc/index.js';
 
 // Only allow standard JS / TS files.
 const s_ALLOWED_FILES_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -212,7 +213,7 @@ async function processPath(opts, config, isVerbose)
 
    if (filepaths.size === 0)
    {
-      warn(`No Typescript declarations found to load for documentation generation.`);
+      warn(`No entry points found to load for documentation generation.`);
       process.exit(1);
    }
 
@@ -220,10 +221,15 @@ async function processPath(opts, config, isVerbose)
 }
 
 /**
- * @param opts
- * @param config
- * @param packageObj
- * @param isVerbose
+ * Attempt to parse any `package.json` exports conditions.
+ *
+ * @param {object}            opts - CLI options.
+ *
+ * @param {ProcessedOptions}  config - Processed Options.
+ *
+ * @param {object}            packageObj - Package object.
+ *
+ * @param {boolean}           isVerbose - Verbose logging.
  *
  * @returns {Set<string>} Any resolved entry points to load.
  */
@@ -385,7 +391,7 @@ function processTSConfig(opts, config, isVerbose)
    // Verify any tsconfig provided path.
    if (opts.tsconfig)
    {
-      if (fs.existsSync(opts.tsconfig)) { tsconfigPath = opts.tsconfig; }
+      if (isFile(opts.tsconfig)) { tsconfigPath = opts.tsconfig; }
       else
       {
          exit(`error: Aborting as 'tsconfig' path is specified, but file does not exist; '${opts.tsconfig}'`);
@@ -394,12 +400,16 @@ function processTSConfig(opts, config, isVerbose)
 
    /** @type {import('type-fest').TsConfigJson.CompilerOptions} */
    const defaultCompilerOptions = {
-      module: 'ES2022',
-      target: 'ES2022',
       allowJs: true,
+      declaration: false,
+      declarationMap: false,
+      esModuleInterop: true,
+      module: 'ES2022',
       noEmit: true,
       noImplicitAny: false,
+      skipLibCheck: true,
       sourceMap: false,
+      target: 'ES2022',
       moduleResolution: 'Bundler'
    };
 
@@ -424,8 +434,12 @@ function processTSConfig(opts, config, isVerbose)
 
    // ----------------------------------------------------------------------------------------------------------------
 
-   /** @type {import('type-fest').TsConfigJson.CompilerOptions} */
-   const compilerOptionsJson = Object.assign(defaultCompilerOptions, tsconfigCompilerOptions);
+   /**
+    * Note: the default compiler options will override a fair amount of values.
+    *
+    * @type {import('type-fest').TsConfigJson.CompilerOptions}
+    */
+   const compilerOptionsJson = Object.assign(tsconfigCompilerOptions, defaultCompilerOptions);
 
    // Validate compiler options with Typescript.
    const compilerOptions = validateCompilerOptions(compilerOptionsJson);
@@ -556,8 +570,6 @@ function warn(message)
 
 /**
  * @typedef {object} ProcessedOptions
- *
- * @property {boolean} allDTSFiles When true all entry point files are Typescript declarations.
  *
  * @property {ts.CompilerOptions} compilerOptions Typescript compiler options.
  *
