@@ -148,7 +148,11 @@ async function processPath(opts, config, isVerbose)
          const resolvedPath = path.resolve(opts.path);
          filepaths.add(resolvedPath);
 
-         if (isVerbose) { verbose(`Loading file from path specified:\n${resolvedPath}`); }
+         if (isVerbose)
+         {
+            verbose(`Loading entry point from file path specified:`);
+            verbose(resolvedPath);
+         }
       }
    }
    else
@@ -157,50 +161,51 @@ async function processPath(opts, config, isVerbose)
 
       const packageObj = config.packageObj;
 
-      if (!packageObj) { exit(`No 'package.json' found in: \n${config.cwd}`); }
+      if (!packageObj) { exit(`No 'package.json' found in: ${config.cwd}`); }
 
-      if (typeof packageObj?.types === 'string')
+      if (isVerbose)
       {
-         if (isVerbose) { verbose(`Loading declarations from package.json 'types' property':`); }
-
-         if (!isDTSFile(packageObj.types))
-         {
-            warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
-         }
-         else
-         {
-            if (isVerbose) { verbose(packageObj.typings); }
-         }
+         verbose(`Processing 'package.json':`);
+         verbose(config.packageFilepath);
       }
-      else if (typeof packageObj?.typings === 'string')
-      {
-         if (isVerbose) { verbose(`Loading declarations from package.json 'typings' property':`); }
 
-         if (!isDTSFile(packageObj.typings))
-         {
-            warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
-         }
-         else
-         {
-            if (isVerbose) { verbose(packageObj.typings); }
-         }
+      const exportsFilepaths = processPathExports(opts, config, packageObj, isVerbose);
+
+      if (exportsFilepaths.size)
+      {
+         filepaths = exportsFilepaths;
       }
       else
       {
-         if (typeof packageObj?.exports !== 'object')
+         if (typeof packageObj?.types === 'string')
          {
-            exit(`No 'exports' conditions found in 'package.json': \n${config.packageFilepath}`);
-         }
+            if (isVerbose) { verbose(`Loading entry points from package.json 'types' property':`); }
 
-         if (isVerbose) { verbose(`Loading declarations from 'package.json' export conditions:`); }
-
-         if (opts.export === 'types')
-         {
-            filepaths = processExportsTypes(packageObj, isVerbose);
+            if (!isDTSFile(packageObj.types))
+            {
+               warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
+            }
+            else
+            {
+               const resolvedPath = path.resolve(packageObj.types);
+               if (isVerbose) { verbose(resolvedPath); }
+               filepaths.add(path.resolve(resolvedPath));
+            }
          }
-         else
+         else if (typeof packageObj?.typings === 'string')
          {
-            filepaths = processExportsCondition(packageObj, opts.export, isVerbose);
+            if (isVerbose) { verbose(`Loading entry points from package.json 'typings' property':`); }
+
+            if (!isDTSFile(packageObj.typings))
+            {
+               warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
+            }
+            else
+            {
+               const resolvedPath = path.resolve(packageObj.typings);
+               if (isVerbose) { verbose(resolvedPath); }
+               filepaths.add(path.resolve(resolvedPath));
+            }
          }
       }
    }
@@ -212,6 +217,27 @@ async function processPath(opts, config, isVerbose)
    }
 
    return [...filepaths];
+}
+
+/**
+ * @param opts
+ * @param config
+ * @param packageObj
+ * @param isVerbose
+ *
+ * @returns {Set<string>} Any resolved entry points to load.
+ */
+function processPathExports(opts, config, packageObj, isVerbose)
+{
+   if (typeof packageObj?.exports !== 'object')
+   {
+      if (isVerbose) { verbose(`No 'exports' conditions found in 'package.json'.`); }
+
+      return new Set();
+   }
+
+   return opts.export === 'types' ? processExportsTypes(packageObj, isVerbose) :
+    processExportsCondition(packageObj, opts.export, isVerbose);
 }
 
 /**
@@ -228,7 +254,7 @@ async function processPath(opts, config, isVerbose)
 function processExportsCondition(packageObj, condition, isVerbose)
 {
    const filepaths = new Set();
-
+   const exportPaths = [];
 
    for (const exportPath in packageObj.exports)
    {
@@ -265,8 +291,14 @@ function processExportsCondition(packageObj, condition, isVerbose)
       if (filepaths.has(filepath)) { continue; }
 
       filepaths.add(path.resolve(filepath));
+      exportPaths.push(`"${exportPath}": ${filepath}`);
+   }
 
-      if (isVerbose) { verbose(`"${exportPath}": ${filepath}`); }
+   // Log any entry points found.
+   if (exportPaths.length && isVerbose)
+   {
+      verbose(`Loading entry points from 'package.json' export condition '${condition}':`);
+      for (const exportPath of exportPaths) { verbose(exportPath); }
    }
 
    return filepaths;
@@ -284,6 +316,7 @@ function processExportsCondition(packageObj, condition, isVerbose)
 function processExportsTypes(packageObj, isVerbose)
 {
    const dtsPaths = new Set();
+   const exportPaths = [];
 
    for (const exportPath in packageObj.exports)
    {
@@ -300,29 +333,35 @@ function processExportsTypes(packageObj, isVerbose)
 
       if (!Array.isArray(result) || result.length === 0) { continue; }
 
-      const typesPath = result[0];
+      const filepath = result[0];
 
-      if (typeof typesPath !== 'string') { continue; }
+      if (typeof filepath !== 'string') { continue; }
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
-      if (!typesPath.endsWith('.d.ts') && !typesPath.endsWith('.d.mts') && !typesPath.endsWith('.d.cts'))
+      if (!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'))
       {
          continue;
       }
 
-      if (!isDTSFile(typesPath))
+      if (!isDTSFile(filepath))
       {
-         warn(`Warning: export condition is not a file; "${exportPath}": ${typesPath}`);
+         warn(`Warning: export condition is not a file; "${exportPath}": ${filepath}`);
          continue;
       }
 
       // Consider `dts-buddy` and cases where multiple export conditions point to the same DTS file.
-      if (dtsPaths.has(typesPath)) { continue; }
+      if (dtsPaths.has(filepath)) { continue; }
 
-      dtsPaths.add(path.resolve(typesPath));
+      dtsPaths.add(path.resolve(filepath));
+      exportPaths.push(`"${exportPath}": ${filepath}`);
+   }
 
-      if (isVerbose) { verbose(`"${exportPath}": ${typesPath}`); }
+   // Log any entry points found.
+   if (exportPaths.length && isVerbose)
+   {
+      verbose(`Loading entry points from 'package.json' export condition 'types':`);
+      for (const exportPath of exportPaths) { verbose(exportPath); }
    }
 
    return dtsPaths;
