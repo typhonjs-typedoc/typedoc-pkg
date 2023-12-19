@@ -8,8 +8,7 @@ import * as resolvePkg        from 'resolve.exports';
 import ts                     from 'typescript';
 import { LogLevel }           from 'typedoc';
 
-import { generateDocs }       from '../ty    "typedoc": ">=0.25.1 <0.26.0"
-pedoc/index.js';
+import { generateDocs }       from '../typedoc/index.js';
 
 // Only allow standard JS / TS files.
 const s_ALLOWED_FILES_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -50,9 +49,11 @@ async function processOptions(opts)
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
+   // Sets `config.entryPoints`.
+   await processPath(opts, config, isVerbose);
+
    config.compilerOptions = processTSConfig(opts, config, isVerbose);
    config.dmtFlat = typeof opts?.['dmt-flat'] === 'boolean' ? opts['dmt-flat'] : false;
-   config.entryPoints = await processPath(opts, config, isVerbose);
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.logLevel = isVerbose ? LogLevel.Verbose : LogLevel.Info;
@@ -172,11 +173,12 @@ async function processPath(opts, config, isVerbose)
 
       const exportsFilepaths = processPathExports(opts, config, packageObj, isVerbose);
 
+      // If there are exports in `package.json` accept the file paths.
       if (exportsFilepaths.size)
       {
          filepaths = exportsFilepaths;
       }
-      else
+      else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
       {
          if (typeof packageObj?.types === 'string')
          {
@@ -217,7 +219,7 @@ async function processPath(opts, config, isVerbose)
       process.exit(1);
    }
 
-   return [...filepaths];
+   config.entryPoints = [...filepaths];
 }
 
 /**
@@ -239,11 +241,13 @@ function processPathExports(opts, config, packageObj, isVerbose)
    {
       if (isVerbose) { verbose(`No 'exports' conditions found in 'package.json'.`); }
 
-      return new Set();
+      return new Map();
    }
 
-   return opts.export === 'types' ? processExportsTypes(packageObj, isVerbose) :
+   const exportsMap = opts.export === 'types' ? processExportsTypes(packageObj, isVerbose) :
     processExportsCondition(packageObj, opts.export, isVerbose);
+
+   return new Set(exportsMap.keys());
 }
 
 /**
@@ -255,12 +259,12 @@ function processPathExports(opts, config, packageObj, isVerbose)
  *
  * @param {boolean}  isVerbose - Verbose logging.
  *
- * @returns {Set<string>} Resolved file paths for given export condition.
+ * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
 function processExportsCondition(packageObj, condition, isVerbose)
 {
-   const filepaths = new Set();
-   const exportPaths = [];
+   const exportMap = new Map();
+   const exportLog = [];
 
    for (const exportPath in packageObj.exports)
    {
@@ -277,37 +281,39 @@ function processExportsCondition(packageObj, condition, isVerbose)
 
       if (!Array.isArray(result) || result.length === 0) { continue; }
 
-      const filepath = result[0];
+      const entryPath = result[0];
 
-      if (typeof filepath !== 'string') { continue; }
+      if (typeof entryPath !== 'string') { continue; }
 
-      if (!s_ALLOWED_FILES_EXTENSIONS.test(filepath)) { continue; }
+      if (!s_ALLOWED_FILES_EXTENSIONS.test(entryPath)) { continue; }
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
 
       // TODO: There is no check here to ensure that the 'default' condition isn't used or determine the type of file.
 
-      if (!isFile(filepath))
+      if (!isFile(entryPath))
       {
-         warn(`Warning: export condition is not a file; "${exportPath}": ${filepath}`);
+         warn(`Warning: export condition is not a file; "${exportPath}": ${entryPath}`);
          continue;
       }
 
-      if (filepaths.has(filepath)) { continue; }
+      const filepath = path.resolve(entryPath);
 
-      filepaths.add(path.resolve(filepath));
-      exportPaths.push(`"${exportPath}": ${filepath}`);
+      if (exportMap.has(filepath)) { continue; }
+
+      exportMap.set(filepath, exportPath);
+      exportLog.push(`"${exportPath}": ${filepath}`);
    }
 
    // Log any entry points found.
-   if (exportPaths.length && isVerbose)
+   if (exportLog.length && isVerbose)
    {
       verbose(`Loading entry points from 'package.json' export condition '${condition}':`);
-      for (const exportPath of exportPaths) { verbose(exportPath); }
+      for (const entry of exportLog) { verbose(entry); }
    }
 
-   return filepaths;
+   return exportMap;
 }
 
 /**
@@ -317,12 +323,12 @@ function processExportsCondition(packageObj, condition, isVerbose)
  *
  * @param {boolean}  isVerbose - Verbose logging.
  *
- * @returns {Set<string>} Resolved file paths for given export condition.
+ * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
 function processExportsTypes(packageObj, isVerbose)
 {
-   const dtsPaths = new Set();
-   const exportPaths = [];
+   const exportMap = new Map();
+   const exportLog = [];
 
    for (const exportPath in packageObj.exports)
    {
@@ -339,38 +345,39 @@ function processExportsTypes(packageObj, isVerbose)
 
       if (!Array.isArray(result) || result.length === 0) { continue; }
 
-      const filepath = result[0];
+      const entryPath = result[0];
 
-      if (typeof filepath !== 'string') { continue; }
+      if (typeof entryPath !== 'string') { continue; }
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
-      if (!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'))
+      if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts'))
       {
          continue;
       }
 
-      if (!isDTSFile(filepath))
+      if (!isDTSFile(entryPath))
       {
-         warn(`Warning: export condition is not a file; "${exportPath}": ${filepath}`);
+         warn(`Warning: export condition is not a file; "${exportPath}": ${entryPath}`);
          continue;
       }
 
-      // Consider `dts-buddy` and cases where multiple export conditions point to the same DTS file.
-      if (dtsPaths.has(filepath)) { continue; }
+      const filepath = path.resolve(entryPath);
 
-      dtsPaths.add(path.resolve(filepath));
-      exportPaths.push(`"${exportPath}": ${filepath}`);
+      if (exportMap.has(filepath)) { continue; }
+
+      exportMap.set(filepath, exportPath);
+      exportLog.push(`"${exportPath}": ${filepath}`);
    }
 
    // Log any entry points found.
-   if (exportPaths.length && isVerbose)
+   if (exportLog.length && isVerbose)
    {
       verbose(`Loading entry points from 'package.json' export condition 'types':`);
-      for (const exportPath of exportPaths) { verbose(exportPath); }
+      for (const entry of exportLog) { verbose(entry); }
    }
 
-   return dtsPaths;
+   return exportMap;
 }
 
 /**
