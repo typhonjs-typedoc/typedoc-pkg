@@ -109,7 +109,9 @@ function setDMTOptions(config, configDocs)
 
    if (configDocs.dmtFavicon === void 0) { configDocs.dmtFavicon = dmtFavicon; }
 
-   if (configDocs.dmtNavModuleDepth === void 0 && config.dmtFlat) { configDocs.dmtNavModuleDepth = 0; }
+   if (configDocs.dmtModuleNames === void 0) { configDocs.dmtModuleNames = config.dmtModuleNames; }
+
+   if (configDocs.dmtNavModuleDepth === void 0 && config.dmtNavFlat) { configDocs.dmtNavModuleDepth = 0; }
 
    if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackage)
    {
