@@ -57,6 +57,7 @@ async function processOptions(opts)
    await processPath(opts, config, isVerbose);
 
    config.compilerOptions = processTSConfig(opts, config, isVerbose);
+   config.dmtNavCompact = typeof opts?.['dmt-nav-compact'] === 'boolean' ? opts['dmt-nav-compact'] : false;
    config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
@@ -612,6 +613,8 @@ function warn(message)
  * @property {ts.CompilerOptions} compilerOptions Typescript compiler options.
  *
  * @property {string} cwd Current Working Directory.
+ *
+ * @property {boolean} dmtNavCompact Module paths should compact singular paths in navigation.
  *
  * @property {boolean} dmtNavFlat Module paths should be flattened in navigation.
  *

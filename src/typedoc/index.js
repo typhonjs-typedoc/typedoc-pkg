@@ -111,6 +111,8 @@ function setDMTOptions(config, configDocs)
 
    if (configDocs.dmtModuleNames === void 0) { configDocs.dmtModuleNames = config.dmtModuleNames; }
 
+   if (configDocs.dmtNavModuleCompact === void 0 && config.dmtNavCompact) { configDocs.dmtNavModuleCompact = true; }
+
    if (configDocs.dmtNavModuleDepth === void 0 && config.dmtNavFlat) { configDocs.dmtNavModuleDepth = 0; }
 
    if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackage)
