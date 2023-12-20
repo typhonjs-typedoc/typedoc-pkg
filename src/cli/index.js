@@ -18,7 +18,7 @@ const program = sade('typedoc-pkg', true)
    .option('-o, --output', `Provide a directory path for generated documentation.`, 'docs')
    .option('-p, --path', `Provide a file or directory path to configure as entry points for documentation generation.`)
    .option('-t, --tsconfig', `Provide a path to custom 'tsconfig.json' file.`)
-   .option('--dmt-flat', `[Default Modern Theme] Package / module navigation paths are flattened.`)
+   .option('--dmt-nav-flat', `[Default Modern Theme] Package / module navigation paths are flattened.`)
    .option('--verbose', `Verbosely log configuration setup.`)
    .action(generate);
 
