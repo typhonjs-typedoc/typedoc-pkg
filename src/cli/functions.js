@@ -1,12 +1,16 @@
 import fs                     from 'node:fs';
-import path                   from 'node:path';
 
-import { getFileList }        from '@typhonjs-utils/file-util';
+import {
+   commonPath,
+   getFileList,
+   getRelativePath }          from '@typhonjs-utils/file-util';
+
 import { getPackageWithPath } from '@typhonjs-utils/package-json';
+import isGlob                 from 'is-glob';
 import * as resolvePkg        from 'resolve.exports';
-
 import ts                     from 'typescript';
 import { LogLevel }           from 'typedoc';
+import path                   from 'upath';
 
 import { generateDocs }       from '../typedoc/index.js';
 
@@ -44,7 +48,7 @@ async function processOptions(opts)
       cwd,
       fromPackage: false,
       packageObj,
-      packageFilepath: filepath
+      packageFilepath: path.toUnix(filepath)
    };
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
@@ -53,7 +57,7 @@ async function processOptions(opts)
    await processPath(opts, config, isVerbose);
 
    config.compilerOptions = processTSConfig(opts, config, isVerbose);
-   config.dmtFlat = typeof opts?.['dmt-flat'] === 'boolean' ? opts['dmt-flat'] : false;
+   config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.logLevel = isVerbose ? LogLevel.Verbose : LogLevel.Info;
@@ -247,7 +251,24 @@ function processPathExports(opts, config, packageObj, isVerbose)
    const exportsMap = opts.export === 'types' ? processExportsTypes(packageObj, isVerbose) :
     processExportsCondition(packageObj, opts.export, isVerbose);
 
-   return new Set(exportsMap.keys());
+   // Process `dmtModuleNames ----------------------------------------------------------------------------------------
+
+   const filepaths = [...exportsMap.keys()];
+   const exportPaths = [...exportsMap.values()];
+
+   const basepath = commonPath(...filepaths);
+
+   const dmtModuleNames = {};
+
+   for (let cntr = 0; cntr < filepaths.length; cntr++)
+   {
+      const relativeDir = path.dirname(getRelativePath({ basepath, filepath: filepaths[cntr] }));
+      dmtModuleNames[relativeDir] = path.join(packageObj.name, exportPaths[cntr]);
+   }
+
+   config.dmtModuleNames = dmtModuleNames;
+
+   return new Set(filepaths);
 }
 
 /**
@@ -285,12 +306,16 @@ function processExportsCondition(packageObj, condition, isVerbose)
 
       if (typeof entryPath !== 'string') { continue; }
 
-      if (!s_ALLOWED_FILES_EXTENSIONS.test(entryPath)) { continue; }
-
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
 
-      // TODO: There is no check here to ensure that the 'default' condition isn't used or determine the type of file.
+      if (!s_ALLOWED_FILES_EXTENSIONS.test(entryPath)) { continue; }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
+      {
+         if (isVerbose) { verbose(`Skipping export condition as it contains a glob; "${exportPath}": ${entryPath}`); }
+         continue;
+      }
 
       if (!isFile(entryPath))
       {
@@ -353,6 +378,12 @@ function processExportsTypes(packageObj, isVerbose)
       // See: https://github.com/lukeed/resolve.exports/issues/30
       if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts'))
       {
+         continue;
+      }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
+      {
+         if (isVerbose) { verbose(`Skipping export condition as it contains a glob; "${exportPath}": ${entryPath}`); }
          continue;
       }
 
@@ -582,7 +613,9 @@ function warn(message)
  *
  * @property {string} cwd Current Working Directory.
  *
- * @property {boolean} dmtFlat Module paths should be flattened.
+ * @property {boolean} dmtNavFlat Module paths should be flattened in navigation.
+ *
+ * @property {Record<string, string>} dmtModuleNames Module name substitution.
  *
  * @property {string[]} entryPoints All declaration files to include in doc generation.
  *
