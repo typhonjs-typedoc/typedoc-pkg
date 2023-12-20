@@ -13,9 +13,15 @@ import { LogLevel }           from 'typedoc';
 import path                   from 'upath';
 
 import { generateDocs }       from '../typedoc/index.js';
+import {
+   isDirectory,
+   isDTSFile,
+   isFile }                   from '../util/index.js';
 
 // Only allow standard JS / TS files.
-const s_ALLOWED_FILES_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
+const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
+
+const s_REGEX_IS_DTS_FILE = /\.d\.(cts|ts|mts)$/;
 
 /**
  * Processes CLI options and invokes TypeDoc.
@@ -47,13 +53,14 @@ async function processOptions(opts)
    const config = {
       cwd,
       fromPackage: false,
+      hasCompilerOptions: false,
       packageObj,
       packageFilepath: path.toUnix(filepath)
    };
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
-   // Sets `config.entryPoints`.
+   // Sets `config.entryPoints` / `config.entryPointsDTS`.
    await processPath(opts, config, isVerbose);
 
    config.compilerOptions = processTSConfig(opts, config, isVerbose);
@@ -62,6 +69,7 @@ async function processOptions(opts)
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.logLevel = isVerbose ? LogLevel.Verbose : LogLevel.Info;
+   config.typedocJSON = processTypedoc(opts, config, isVerbose);
 
    return config;
 }
@@ -150,7 +158,7 @@ async function processPath(opts, config, isVerbose)
             if (isVerbose) { verbose(resolvedPath); }
          }
       }
-      else if (isFile(opts.path) && s_ALLOWED_FILES_EXTENSIONS.test(opts.path))
+      else if (isFile(opts.path) && s_REGEX_ALLOWED_FILE_EXTENSIONS.test(opts.path))
       {
          const resolvedPath = path.resolve(opts.path);
          filepaths.add(resolvedPath);
@@ -225,6 +233,9 @@ async function processPath(opts, config, isVerbose)
    }
 
    config.entryPoints = [...filepaths];
+
+   // Sets true if every entry point a Typescript declaration.
+   config.entryPointsDTS = config.entryPoints.every((filepath) => s_REGEX_IS_DTS_FILE.test(filepath));
 }
 
 /**
@@ -310,7 +321,7 @@ function processExportsCondition(packageObj, condition, isVerbose)
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
 
-      if (!s_ALLOWED_FILES_EXTENSIONS.test(entryPath)) { continue; }
+      if (!s_REGEX_ALLOWED_FILE_EXTENSIONS.test(entryPath)) { continue; }
 
       if (isGlob(exportPath) || isGlob(entryPath))
       {
@@ -433,7 +444,7 @@ function processTSConfig(opts, config, isVerbose)
       if (isFile(opts.tsconfig)) { tsconfigPath = opts.tsconfig; }
       else
       {
-         exit(`error: Aborting as 'tsconfig' path is specified, but file does not exist; '${opts.tsconfig}'`);
+         exit(`Aborting as 'tsconfig' path is specified, but file does not exist; '${opts.tsconfig}'`);
       }
    }
 
@@ -462,7 +473,11 @@ function processTSConfig(opts, config, isVerbose)
       try
       {
          const configJSON = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8').toString());
-         if (configJSON?.compilerOptions) { tsconfigCompilerOptions = configJSON.compilerOptions; }
+         if (configJSON?.compilerOptions)
+         {
+            tsconfigCompilerOptions = configJSON.compilerOptions;
+            config.hasCompilerOptions = true;
+         }
       }
       catch (err)
       {
@@ -493,50 +508,47 @@ function processTSConfig(opts, config, isVerbose)
 }
 
 /**
- * @param {string}   filepath - Path to check.
+ * Loads `typedoc` CLI options.
  *
- * @returns {boolean} Returns if the given path is a file.
+ * @param {object}            opts - CLI options.
+ *
+ * @param {ProcessedOptions}  config - Processed config options.
+ *
+ * @param {boolean}           isVerbose - Verbose logging.
+ *
+ * @returns {object} TypeDoc JSON object.
  */
-function isFile(filepath)
+function processTypedoc(opts, config, isVerbose)
 {
-   try
-   {
-      const stats = fs.statSync(filepath);
-      return stats.isFile();
-   }
-   catch (err)
-   {
-      return false;
-   }
-}
+   let typedocPath;
+   let typedocJSON;
 
-/**
- * @param {string}   filepath - Path to check.
- *
- * @returns {boolean} Returns if the given path is a file.
- */
-function isDTSFile(filepath)
-{
-   return isFile(filepath) &&
-    !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
-}
+   // Verify any tsconfig provided path.
+   if (opts.typedoc)
+   {
+      if (isFile(opts.typedoc)) { typedocPath = opts.typedoc; }
+      else
+      {
+         exit(`Aborting as 'typedoc.json' path is specified, but file does not exist; '${opts.typedoc}'`);
+      }
+   }
 
-/**
- * @param {string}   dirpath - Path to check.
- *
- * @returns {boolean} Returns if the given path is a directory.
- */
-function isDirectory(dirpath)
-{
-   try
+   if (typedocPath)
    {
-      const stats = fs.statSync(dirpath);
-      return stats.isDirectory();
+      if (isVerbose) { verbose(`Loading TypeDoc options from 'typedoc' path: ${typedocPath}`); }
+
+      try
+      {
+         typedocJSON = JSON.parse(fs.readFileSync(typedocPath, 'utf-8').toString());
+      }
+      catch (err)
+      {
+         exit(`Aborting as 'typedoc.json' path is specified, but failed to load; '${
+          err.message}'\ntypedoc path: ${typedocPath};`);
+      }
    }
-   catch (err)
-   {
-      return false;
-   }
+
+   return typedocJSON;
 }
 
 /**
@@ -620,9 +632,13 @@ function warn(message)
  *
  * @property {Record<string, string>} dmtModuleNames Module name substitution.
  *
- * @property {string[]} entryPoints All declaration files to include in doc generation.
+ * @property {string[]} entryPoints All files to include in doc generation.
+ *
+ * @property {boolean} entryPointsDTS True if all entry points are Typescript declarations.
  *
  * @property {boolean} fromPackage Indicates that the entry point files are from package exports.
+ *
+ * @property {boolean} hasCompilerOptions When true indicates that compiler options were loaded from CLI option.
  *
  * @property {string[]} linkPlugins All API link plugins to load.
  *
@@ -633,4 +649,6 @@ function warn(message)
  * @property {object} packageObj Any found package.json object.
  *
  * @property {string} packageFilepath File path of found package.json.
+ *
+ * @property {object} typedocJSON Options loaded from --typedoc CLI option.
  */

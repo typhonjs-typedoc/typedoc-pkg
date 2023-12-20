@@ -1,6 +1,12 @@
-import fs               from 'node:fs';
+import {
+   Application,
+   Logger,
+   Options,
+   PackageJsonReader,
+   TSConfigReader,
+   TypeDocReader }      from 'typedoc';
 
-import { Application }  from 'typedoc';
+import { isFile }       from '../util/index.js';
 
 /**
  * Generate docs
@@ -12,10 +18,26 @@ import { Application }  from 'typedoc';
 export async function generateDocs(config)
 {
    // Create a new TypeDoc application instance with no default config readers.
-   const app = await Application.bootstrapWithPlugins(createConfig(config), []);
+   const typedocOptions = await createTypedocOptions(config);
 
-   // Necessary to set compiler options here just before `app.convert` otherwise they are reset.
-   app.options.setCompilerOptions(config.entryPoints, config.compilerOptions, []);
+   const optionReaders = [new PackageJsonReader()];
+
+   // If explicit options have been read from CLI configuration avoid adding those option readers.
+   if (!config.typedocJSON) { optionReaders.push(new TypeDocReader()); }
+   if (!config.hasCompilerOptions) { optionReaders.push(new TSConfigReader()); }
+
+   const app = await Application.bootstrapWithPlugins(typedocOptions, optionReaders);
+
+   setCLIOptions(config, app.options);
+
+   // Set any extra options for DMT.
+   if ('default-modern' === app.options.getValue('theme')) { setDMTOptions(config, app.options); }
+
+   // Set default compiler options or any CLI optional tsconfig compiler options.
+   if (!app.options.isSet('compilerOptions') || config.hasCompilerOptions)
+   {
+      app.options.setCompilerOptions(config.entryPoints, config.compilerOptions, []);
+   }
 
    // Convert TypeScript sources to a TypeDoc ProjectReflection
    const project = await app.convert();
@@ -34,58 +56,91 @@ export async function generateDocs(config)
 // Internal implementation -------------------------------------------------------------------------------------------
 
 /**
- * Create the TypeDoc configuration.
+ * Create the TypeDoc options.
  *
  * @param {import('../cli').ProcessedOptions}  config - Processed CLI options.
  *
  * @returns {object} TypeDoc configuration.
  */
-function createConfig(config)
+async function createTypedocOptions(config)
 {
-   /** @type {Partial<import('typedoc').TypeDocOptions>} */
-   const configDefault = {
-      // Disables the source links as they reference the d.ts files.
-      disableSources: true,
+   // Temporary TypeDoc Options loading to find any `theme` set by default configuration.
+   const options = new Options();
+   options.addReader(new TypeDocReader());
+   options.addReader(new PackageJsonReader());
+   await options.read(new Logger(), config.cwd);
 
+   // If no theme is set then use DMT / `default-modern`.
+   const theme = options.isSet('theme') ? options.getValue('theme') : 'default-modern';
+
+   /** @type {Partial<import('typedoc').TypeDocOptions>} */
+   const optionsDefault = {
+      theme,
+   };
+
+   /** @type {Partial<import('typedoc').TypeDocOptions>} */
+   const optionsRequired = {
       entryPoints: config.entryPoints,
 
-      // Excludes any private members including the `#private;` member added by Typescript.
-      excludePrivate: true,
-
-      // Hide the documentation generator footer.
-      hideGenerator: true,
-
-      // Sets log level.
-      logLevel: config.logLevel,
+      entryPointStrategy: 'resolve',
 
       // Output directory for the generated documentation
       out: config.out,
-
-      theme: 'default-modern',
-
-      // Only show the `inherited` and `protected` filters.
-      visibilityFilters: {
-         inherited: true,
-         protected: true
-      }
    };
 
-   // Load any `typedoc` options via `typedoc-pkg` property in `package.json`.
-   const pkgTypedocConfig = typeof config?.packageObj?.['typedoc'] === 'object' ?
-    config.packageObj['typedoc'] : {};
+   const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, optionsRequired);
 
-   const configDocs = Object.assign(configDefault, pkgTypedocConfig);
+   if (!Array.isArray(optionsDoc.plugin)) { optionsDoc.plugin = []; }
 
-   // Ensure that `plugins` is defined.
-   if (!Array.isArray(configDocs.plugin)) { configDocs.plugin = []; }
+   // Add DMT theme plugin.
+   if (!optionsDoc.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
+   {
+      optionsDoc.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
+   }
+
+   return optionsDoc;
+}
+
+/**
+ * Set options from CLI options.
+ *
+ * @param {import('../cli').ProcessedOptions}   config - CLI options.
+ *
+ * @param {import('typedoc').Options}   options - TypeDoc options.
+ */
+function setCLIOptions(config, options)
+{
+   const plugin = options.getValue('plugin');
 
    // Add any API link plugins.
-   configDocs.plugin.push(...config.linkPlugins);
+   plugin.push(...config.linkPlugins);
 
-   // Set any extra options for DMT.
-   if (configDocs.theme === 'default-modern') { setDMTOptions(config, configDocs); }
+   options.setValue('plugin', plugin);
 
-   return configDocs;
+   // Optional values to set if not defined. -------------------------------------------------------------------------
+
+   // Hide generator
+   if (!options.isSet('hideGenerator')) { options.setValue('hideGenerator', true); }
+
+   // Sets log level.
+   if (!options.isSet('logLevel')) { options.setValue('logLevel', config.logLevel); }
+
+   // Handle defaults options when all entry points are Typescript declarations. -------------------------------------
+
+   if (config.entryPointsDTS)
+   {
+      // Disables the source links as they reference the d.ts files.
+      if (!options.isSet('disableSources')) { options.setValue('disableSources', true); }
+
+      // Excludes any private members including the `#private;` member added by Typescript.
+      if (!options.isSet('excludePrivate')) { options.setValue('excludePrivate', true); }
+
+      // Only show the `inherited` and `protected` filters.
+      if (!options.isSet('visibilityFilters'))
+      {
+         options.setValue('visibilityFilters', { inherited: true, protected: true });
+      }
+   }
 }
 
 /**
@@ -93,30 +148,24 @@ function createConfig(config)
  *
  * @param {import('../cli').ProcessedOptions}   config - CLI options.
  *
- * @param {object}   configDocs - TypeDoc config.
+ * @param {import('typedoc').Options}   options - TypeDoc options.
  */
-function setDMTOptions(config, configDocs)
+function setDMTOptions(config, options)
 {
-   // Add DMT theme plugin.
-   if (!configDocs.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
-   {
-      configDocs.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
-   }
-
    // Automatic check for local `favicon.ico`.
-   const dmtFavicon = fs.existsSync('./favicon.ico') ? './favicon.ico' :
-    fs.existsSync('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
+   const dmtFavicon = isFile('./favicon.ico') ? './favicon.ico' :
+    isFile('./assets/docs/favicon.ico') ? './assets/docs/favicon.ico' : void 0;
 
-   if (configDocs.dmtFavicon === void 0) { configDocs.dmtFavicon = dmtFavicon; }
+   if (!options.isSet('dmtFavicon') && dmtFavicon) { options.setValue('dmtFavicon', dmtFavicon); }
 
-   if (configDocs.dmtModuleNames === void 0) { configDocs.dmtModuleNames = config.dmtModuleNames; }
+   if (!options.isSet('dmtModuleNames')) { options.setValue('dmtModuleNames', config.dmtModuleNames); }
 
-   if (configDocs.dmtNavModuleCompact === void 0 && config.dmtNavCompact) { configDocs.dmtNavModuleCompact = true; }
+   if (!options.isSet('dmtNavModuleCompact') && config.dmtNavCompact) { options.setValue('dmtNavModuleCompact', true); }
 
-   if (configDocs.dmtNavModuleDepth === void 0 && config.dmtNavFlat) { configDocs.dmtNavModuleDepth = 0; }
+   if (!options.isSet('dmtNavModuleDepth') && config.dmtNavFlat) { options.setValue('dmtNavModuleDepth', 0); }
 
-   if (configDocs.dmtModuleAsPackage === void 0 && config.fromPackage)
+   if (!options.isSet('dmtModuleAsPackage') && config.fromPackage)
    {
-      configDocs.dmtModuleAsPackage = true;
+      options.setValue('dmtModuleAsPackage', true);
    }
 }
