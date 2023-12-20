@@ -9,7 +9,6 @@ import { getPackageWithPath } from '@typhonjs-utils/package-json';
 import isGlob                 from 'is-glob';
 import * as resolvePkg        from 'resolve.exports';
 import ts                     from 'typescript';
-import { LogLevel }           from 'typedoc';
 import path                   from 'upath';
 
 import { generateDocs }       from '../typedoc/index.js';
@@ -68,7 +67,6 @@ async function processOptions(opts)
    config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
    config.linkPlugins = processLink(opts, isVerbose);
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
-   config.logLevel = isVerbose ? LogLevel.Verbose : LogLevel.Info;
    config.typedocJSON = processTypedoc(opts, config, isVerbose);
 
    return config;
@@ -266,19 +264,22 @@ function processPathExports(opts, config, packageObj, isVerbose)
    // Process `dmtModuleNames ----------------------------------------------------------------------------------------
 
    const filepaths = [...exportsMap.keys()];
-   const exportPaths = [...exportsMap.values()];
 
-   const basepath = commonPath(...filepaths);
-
-   const dmtModuleNames = {};
-
-   for (let cntr = 0; cntr < filepaths.length; cntr++)
+   if (filepaths.length)
    {
-      const relativeDir = path.dirname(getRelativePath({ basepath, filepath: filepaths[cntr] }));
-      dmtModuleNames[relativeDir] = path.join(packageObj.name, exportPaths[cntr]);
-   }
+      const exportPaths = [...exportsMap.values()];
+      const basepath = commonPath(...filepaths);
 
-   config.dmtModuleNames = dmtModuleNames;
+      const dmtModuleNames = {};
+
+      for (let cntr = 0; cntr < filepaths.length; cntr++)
+      {
+         const relativeDir = path.dirname(getRelativePath({ basepath, filepath: filepaths[cntr] }));
+         dmtModuleNames[relativeDir] = path.join(packageObj.name, exportPaths[cntr]);
+      }
+
+      config.dmtModuleNames = dmtModuleNames;
+   }
 
    return new Set(filepaths);
 }
@@ -641,8 +642,6 @@ function warn(message)
  * @property {boolean} hasCompilerOptions When true indicates that compiler options were loaded from CLI option.
  *
  * @property {string[]} linkPlugins All API link plugins to load.
- *
- * @property {number} logLevel TypeDoc log level.
  *
  * @property {string} out Documentation output directory.
  *

@@ -122,9 +122,6 @@ function setCLIOptions(config, options)
    // Hide generator
    if (!options.isSet('hideGenerator')) { options.setValue('hideGenerator', true); }
 
-   // Sets log level.
-   if (!options.isSet('logLevel')) { options.setValue('logLevel', config.logLevel); }
-
    // Handle defaults options when all entry points are Typescript declarations. -------------------------------------
 
    if (config.entryPointsDTS)
@@ -158,7 +155,10 @@ function setDMTOptions(config, options)
 
    if (!options.isSet('dmtFavicon') && dmtFavicon) { options.setValue('dmtFavicon', dmtFavicon); }
 
-   if (!options.isSet('dmtModuleNames')) { options.setValue('dmtModuleNames', config.dmtModuleNames); }
+   if (!options.isSet('dmtModuleNames') && config.dmtModuleNames)
+   {
+      options.setValue('dmtModuleNames', config.dmtModuleNames);
+   }
 
    if (!options.isSet('dmtNavModuleCompact') && config.dmtNavCompact) { options.setValue('dmtNavModuleCompact', true); }
 
