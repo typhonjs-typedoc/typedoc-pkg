@@ -94,9 +94,21 @@ async function createTypedocOptions(config)
    if (!Array.isArray(optionsDoc.plugin)) { optionsDoc.plugin = []; }
 
    // Add DMT theme plugin.
-   if (!optionsDoc.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
+   if (theme === 'default-modern')
    {
-      optionsDoc.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
+      if (!optionsDoc.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
+      {
+         optionsDoc.plugin.unshift('@typhonjs-typedoc/typedoc-theme-dmt');
+      }
+   }
+
+   // Add any API link plugins.
+   for (const linkPlugin of config.linkPlugins)
+   {
+      if (!optionsDoc.plugin.includes(linkPlugin))
+      {
+         optionsDoc.plugin.push(linkPlugin);
+      }
    }
 
    return optionsDoc;
@@ -111,13 +123,6 @@ async function createTypedocOptions(config)
  */
 function setCLIOptions(config, options)
 {
-   const plugin = options.getValue('plugin');
-
-   // Add any API link plugins.
-   plugin.push(...config.linkPlugins);
-
-   options.setValue('plugin', plugin);
-
    // Optional values to set if not defined. -------------------------------------------------------------------------
 
    // Sorts the main index for a namespace / module; not the sidebar tab.
