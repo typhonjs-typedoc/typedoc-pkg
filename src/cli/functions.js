@@ -3,19 +3,18 @@ import fs                     from 'node:fs';
 import {
    commonPath,
    getFileList,
-   getRelativePath }          from '@typhonjs-utils/file-util';
+   getRelativePath,
+   isDirectory,
+   isFile }                   from '@typhonjs-utils/file-util';
 
 import { getPackageWithPath } from '@typhonjs-utils/package-json';
+import { globSync }           from 'glob';
 import isGlob                 from 'is-glob';
 import * as resolvePkg        from 'resolve.exports';
 import ts                     from 'typescript';
 import path                   from 'upath';
 
 import { generateDocs }       from '../typedoc/index.js';
-import {
-   isDirectory,
-   isDTSFile,
-   isFile }                   from '../util/index.js';
 
 // Only allow standard JS / TS files.
 const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -34,6 +33,17 @@ export async function generate(opts)
    const config = await processOptions(opts);
 
    await generateDocs(config);
+}
+
+/**
+ * @param {string}   filepath - Path to check.
+ *
+ * @returns {boolean} Returns if the given path is a file.
+ */
+function isDTSFile(filepath)
+{
+   return isFile(filepath) &&
+    !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
 }
 
 /**
@@ -277,18 +287,49 @@ function processPathExports(opts, config, packageObj, isVerbose)
          const filepath = filepaths[cntr];
          const exportPath = exportPaths[cntr];
 
-         const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
-
-         if (relativeDir === '.')
+         if (isGlob(exportPath))
          {
-            // Path is at the project root, so use filename without extension as package / module name.
-            const filename = path.basename(filepath).split('.')[0];
-            dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+
+            if (relativeDir === '.')
+            {
+               // Path is at the project root, so use filename without extension as package / module name.
+               const filename = path.basename(filepath).split('.')[0];
+               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            }
+            else
+            {
+               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // including file name without extension is used except for file names that are `index` which is removed.
+               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+
+               if (!relativePath) { continue; }
+
+               // Path is located in a sub-directory, so join it with package name.
+               dmtModuleNames[relativePath] = path.join(config.packageName, relativePath);
+            }
          }
          else
          {
-            // Path is located in a sub-directory, so join it with package name.
-            dmtModuleNames[relativeDir] = path.join(config.packageName, exportPath);
+            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+
+            if (relativeDir === '.')
+            {
+               // Path is at the project root, so use filename without extension as package / module name.
+               const filename = path.basename(filepath).split('.')[0];
+               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            }
+            else
+            {
+               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // including file name without extension is used except for file names that are `index` which is removed.
+               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+
+               if (!relativePath) { continue; }
+
+               // Path is located in a sub-directory, so join it with package name.
+               dmtModuleNames[relativePath] = path.join(config.packageName, exportPath);
+            }
          }
       }
 
@@ -316,6 +357,22 @@ function processExportsCondition(config, packageObj, condition, isVerbose)
    const exportMap = new Map();
    const exportLog = [];
 
+   const processExport = (procEntryPath, procExportPath) =>
+   {
+      if (!isFile(procEntryPath))
+      {
+         warn(`Warning: export condition is not a file; "${procExportPath}": ${procEntryPath}`);
+         return;
+      }
+
+      const filepath = path.resolve(procEntryPath);
+
+      if (exportMap.has(filepath)) { return; }
+
+      exportMap.set(filepath, procExportPath);
+      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
+   };
+
    for (const exportPath in packageObj.exports)
    {
       let result;
@@ -342,22 +399,13 @@ function processExportsCondition(config, packageObj, condition, isVerbose)
 
       if (isGlob(exportPath) || isGlob(entryPath))
       {
-         if (isVerbose) { verbose(`Skipping export condition as it contains a glob; "${exportPath}": ${entryPath}`); }
-         continue;
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
       }
-
-      if (!isFile(entryPath))
+      else
       {
-         warn(`Warning: export condition is not a file; "${exportPath}": ${entryPath}`);
-         continue;
+         processExport(entryPath, exportPath);
       }
-
-      const filepath = path.resolve(entryPath);
-
-      if (exportMap.has(filepath)) { continue; }
-
-      exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
    }
 
    // Log any entry points found.
@@ -386,6 +434,22 @@ function processExportsTypes(config, packageObj, isVerbose)
    const exportMap = new Map();
    const exportLog = [];
 
+   const processExport = (procEntryPath, procExportPath) =>
+   {
+      if (!isDTSFile(procEntryPath))
+      {
+         warn(`Warning: export condition is not a DTS file; "${procExportPath}": ${procEntryPath}`);
+         return;
+      }
+
+      const filepath = path.resolve(procEntryPath);
+
+      if (exportMap.has(filepath)) { false; }
+
+      exportMap.set(filepath, procExportPath);
+      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
+   };
+
    for (const exportPath in packageObj.exports)
    {
       let result;
@@ -407,29 +471,17 @@ function processExportsTypes(config, packageObj, isVerbose)
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
-      if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts'))
-      {
-         continue;
-      }
+      if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts')) { continue; }
 
       if (isGlob(exportPath) || isGlob(entryPath))
       {
-         if (isVerbose) { verbose(`Skipping export condition as it contains a glob; "${exportPath}": ${entryPath}`); }
-         continue;
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
       }
-
-      if (!isDTSFile(entryPath))
+      else
       {
-         warn(`Warning: export condition is not a file; "${exportPath}": ${entryPath}`);
-         continue;
+         processExport(entryPath, exportPath);
       }
-
-      const filepath = path.resolve(entryPath);
-
-      if (exportMap.has(filepath)) { continue; }
-
-      exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
    }
 
    // Log any entry points found.
