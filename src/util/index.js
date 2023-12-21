@@ -1,36 +1,5 @@
 import fs   from 'node:fs';
 
-import path from 'upath';
-
-/**
- * @param {string}   filepath - Path to check.
- *
- * @returns {boolean} Returns if the given path is a file.
- */
-export function isFile(filepath)
-{
-   try
-   {
-      const stats = fs.statSync(filepath);
-      return stats.isFile();
-   }
-   catch (err)
-   {
-      return false;
-   }
-}
-
-/**
- * @param {string}   filepath - Path to check.
- *
- * @returns {boolean} Returns if the given path is a file.
- */
-export function isDTSFile(filepath)
-{
-   return isFile(filepath) &&
-    !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
-}
-
 /**
  * @param {string}   dirpath - Path to check.
  *
@@ -50,15 +19,30 @@ export function isDirectory(dirpath)
 }
 
 /**
- * Returns relative path from provided current working directory.
+ * @param {string}   filepath - Path to check.
  *
- * @param {string}   filepath - Path to make relative.
- *
- * @param {string}   [cwd=process.cwd()] Current working directory.
- *
- * @returns {string} Relative path.
+ * @returns {boolean} Returns if the given path is a file.
  */
-export function relativePath(filepath, cwd = process.cwd())
+export function isDTSFile(filepath)
 {
-   return path.relative(cwd, filepath);
+   return isFile(filepath) &&
+    !(!filepath.endsWith('.d.ts') && !filepath.endsWith('.d.mts') && !filepath.endsWith('.d.cts'));
+}
+
+/**
+ * @param {string}   filepath - Path to check.
+ *
+ * @returns {boolean} Returns if the given path is a file.
+ */
+export function isFile(filepath)
+{
+   try
+   {
+      const stats = fs.statSync(filepath);
+      return stats.isFile();
+   }
+   catch (err)
+   {
+      return false;
+   }
 }

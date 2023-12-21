@@ -15,8 +15,7 @@ import { generateDocs }       from '../typedoc/index.js';
 import {
    isDirectory,
    isDTSFile,
-   isFile,
-   relativePath }             from '../util/index.js';
+   isFile }                   from '../util/index.js';
 
 // Only allow standard JS / TS files.
 const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -178,7 +177,10 @@ async function processPath(opts, config, isVerbose)
 
       if (!packageObj) { exit(`No 'package.json' found in: ${config.cwd}`); }
 
-      if (isVerbose) { verbose(`Processing: ${relativePath(config.packageFilepath)}`); }
+      if (isVerbose)
+      {
+         verbose(`Processing: ${getRelativePath({ basepath: config.cwd, filepath: config.packageFilepath })}`);
+      }
 
       const exportsFilepaths = processPathExports(opts, config, packageObj, isVerbose);
 
@@ -256,8 +258,8 @@ function processPathExports(opts, config, packageObj, isVerbose)
       return new Map();
    }
 
-   const exportsMap = opts.export === 'types' ? processExportsTypes(packageObj, isVerbose) :
-    processExportsCondition(packageObj, opts.export, isVerbose);
+   const exportsMap = opts.export === 'types' ? processExportsTypes(config, packageObj, isVerbose) :
+    processExportsCondition(config, packageObj, opts.export, isVerbose);
 
    // Process `dmtModuleNames ----------------------------------------------------------------------------------------
 
@@ -299,6 +301,8 @@ function processPathExports(opts, config, packageObj, isVerbose)
 /**
  * Generically processes `package.json` exports conditions from user supplied condition.
  *
+ * @param {ProcessedOptions}  config - Processed Options.
+ *
  * @param {object}   packageObj - Package object.
  *
  * @param {string}   condition - Export condition to find.
@@ -307,7 +311,7 @@ function processPathExports(opts, config, packageObj, isVerbose)
  *
  * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
-function processExportsCondition(packageObj, condition, isVerbose)
+function processExportsCondition(config, packageObj, condition, isVerbose)
 {
    const exportMap = new Map();
    const exportLog = [];
@@ -353,7 +357,7 @@ function processExportsCondition(packageObj, condition, isVerbose)
       if (exportMap.has(filepath)) { continue; }
 
       exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${relativePath(filepath)}`);
+      exportLog.push(`"${exportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
    }
 
    // Log any entry points found.
@@ -369,13 +373,15 @@ function processExportsCondition(packageObj, condition, isVerbose)
 /**
  * Specifically parse the `types` export condition with a few extra sanity checks.
  *
+ * @param {ProcessedOptions}  config - Processed Options.
+ *
  * @param {object}   packageObj - Package object.
  *
  * @param {boolean}  isVerbose - Verbose logging.
  *
  * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
-function processExportsTypes(packageObj, isVerbose)
+function processExportsTypes(config, packageObj, isVerbose)
 {
    const exportMap = new Map();
    const exportLog = [];
@@ -423,7 +429,7 @@ function processExportsTypes(packageObj, isVerbose)
       if (exportMap.has(filepath)) { continue; }
 
       exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${relativePath(filepath)}`);
+      exportLog.push(`"${exportPath}": ${getRelativePath({ basepath: config.cwd, filepath })}`);
    }
 
    // Log any entry points found.
