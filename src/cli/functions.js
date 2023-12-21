@@ -272,8 +272,22 @@ function processPathExports(opts, config, packageObj, isVerbose)
 
       for (let cntr = 0; cntr < filepaths.length; cntr++)
       {
-         const relativeDir = path.dirname(getRelativePath({ basepath, filepath: filepaths[cntr] }));
-         dmtModuleNames[relativeDir] = path.join(config.packageName, exportPaths[cntr]);
+         const filepath = filepaths[cntr];
+         const exportPath = exportPaths[cntr];
+
+         const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+
+         if (relativeDir === '.')
+         {
+            // Path is at the project root, so use filename without extension as package / module name.
+            const filename = path.basename(filepath).split('.')[0];
+            dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+         }
+         else
+         {
+            // Path is located in a sub-directory, so join it with package name.
+            dmtModuleNames[relativeDir] = path.join(config.packageName, exportPath);
+         }
       }
 
       config.dmtModuleNames = dmtModuleNames;
