@@ -3,6 +3,7 @@ import {
    Logger,
    Options,
    PackageJsonReader,
+   ReflectionKind,
    TSConfigReader,
    TypeDocReader }      from 'typedoc';
 
@@ -119,8 +120,14 @@ function setCLIOptions(config, options)
 
    // Optional values to set if not defined. -------------------------------------------------------------------------
 
+   // Sorts the main index for a namespace / module; not the sidebar tab.
+   if (!options.isSet('groupOrder')) { options.setValue('groupOrder', groupOrder); }
+
    // Hide generator
    if (!options.isSet('hideGenerator')) { options.setValue('hideGenerator', true); }
+
+   // Sorts the navigation sidebar order for symbol types.
+   if (!options.isSet('kindSortOrder')) { options.setValue('kindSortOrder', kindSortOrder); }
 
    // Handle defaults options when all entry points are Typescript declarations. -------------------------------------
 
@@ -169,3 +176,53 @@ function setDMTOptions(config, options)
       options.setValue('dmtModuleAsPackage', true);
    }
 }
+
+/**
+ * Sorts the main index for a namespace / module; not the sidebar tab.
+ *
+ * @type {string[]}
+ */
+export const groupOrder = [
+   'Classes',
+   'Constructors',
+   'Accessors',
+   'Methods',
+   'Functions',
+   'Namespaces',
+   'Variables',
+   'Enumerations',
+   'Interfaces',
+   'Type Aliases',
+   '*'
+];
+
+/**
+ * Sorts the navigation sidebar order for symbol types.
+ *
+ * @type {ReflectionKind.KindString[]}
+ */
+export const kindSortOrder = [
+   'Project',
+   'Module',
+   'Class',
+   'Interface',
+   'Function',
+   'Namespace',
+   'Enum',
+   'EnumMember',
+   'TypeAlias',
+   'Reference',
+   'Constructor',
+   'Property',
+   'Variable',
+   'Accessor',
+   'Method',
+   'Parameter',
+   'TypeParameter',
+   'TypeLiteral',
+   'CallSignature',
+   'ConstructorSignature',
+   'IndexSignature',
+   'GetSignature',
+   'SetSignature'
+];
