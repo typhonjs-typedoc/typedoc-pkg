@@ -16,6 +16,8 @@ import path                   from 'upath';
 
 import { generateTypedoc }    from '../generator/typedoc.js';
 
+import { Logger }             from '#util';
+
 // Only allow standard JS / TS files.
 const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
 
@@ -49,7 +51,7 @@ function isDTSFile(filepath)
 /**
  * @param {object}   opts - CLI options.
  *
- * @returns {Promise<ProcessedOptions>} Processed options.
+ * @returns {Promise<import('../generator').PkgTypeDocConfig>} Processed options.
  */
 async function processOptions(opts)
 {
@@ -58,27 +60,27 @@ async function processOptions(opts)
    // Find local `package.json` only.
    const { packageObj, filepath } = getPackageWithPath({ filepath: cwd, basepath: cwd });
 
-   /** @type {Partial<ProcessedOptions>} */
+   /** @type {Partial<import('../generator').PkgTypeDocConfig>} */
    const config = {
       cwd,
       fromPackage: false,
       hasCompilerOptions: false,
-      packageObj,
-      packageFilepath: path.toUnix(filepath)
+      packageObj
    };
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
+   if (isVerbose) { Logger.logLevel = 'verbose'; }
 
-   config.compilerOptions = processTSConfig(opts, config, isVerbose);
+   config.compilerOptions = processTSConfig(opts, config);
    config.dmtNavCompact = typeof opts?.['dmt-nav-compact'] === 'boolean' ? opts['dmt-nav-compact'] : false;
    config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
-   config.linkPlugins = processLink(opts, isVerbose);
+   config.linkPlugins = processLink(opts);
    config.packageName = opts.name ?? packageObj?.name ?? '';
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
-   config.typedocJSON = processTypedoc(opts, config, isVerbose);
+   config.typedocJSON = processTypedoc(opts, config);
 
    // Sets `config.entryPoints` / `config.entryPointsDTS`.
-   await processPath(opts, config, isVerbose);
+   await processPath(opts, config, filepath);
 
    return config;
 }
@@ -94,11 +96,9 @@ const s_LINK_PLUGINS = new Map([
  *
  * @param {object}   opts - CLI options.
  *
- * @param {boolean}  isVerbose - Verbose state.
- *
  * @returns {string[]} List of link plugins enabled.
  */
-function processLink(opts, isVerbose)
+function processLink(opts)
 {
    const plugins = [];
 
@@ -116,11 +116,11 @@ function processLink(opts, isVerbose)
       {
          if (!s_LINK_PLUGINS.has(entry))
          {
-            warn(`API Link warning: Unknown API link '${entry}'.`);
+            Logger.warn(`API Link warning: Unknown API link '${entry}'.`);
             continue;
          }
 
-         if (isVerbose) { verbose(`Adding API link plugin '${entry}': ${s_LINK_PLUGINS.get(entry)}`); }
+         Logger.verbose(`Adding API link plugin '${entry}': ${s_LINK_PLUGINS.get(entry)}`);
          plugins.push(s_LINK_PLUGINS.get(entry));
       }
    }
@@ -133,13 +133,13 @@ function processLink(opts, isVerbose)
  *
  * @param {object}            opts - CLI options.
  *
- * @param {ProcessedOptions}  config - Processed Options.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed Options.
  *
- * @param {boolean}           isVerbose - Verbose logging.
+ * @param {string}            [packageFilepath] - File path to package.json.
  *
  * @returns {Promise<string[]>} Array of DTS file paths.
  */
-async function processPath(opts, config, isVerbose)
+async function processPath(opts, config, packageFilepath)
 {
    let filepaths = new Set();
 
@@ -149,7 +149,7 @@ async function processPath(opts, config, isVerbose)
 
       if (isDirectory(opts.path))
       {
-         if (isVerbose) { verbose(`Loading Typescript declarations from directory path specified:`); }
+         Logger.verbose(`Loading Typescript declarations from directory path specified:`);
 
          // Get all files ending in `d.ts` folder an sub-folders specified.
          const dtsFilepaths = await getFileList({
@@ -164,7 +164,7 @@ async function processPath(opts, config, isVerbose)
             if (filepaths.has(resolvedPath)) { continue; }
             filepaths.add(resolvedPath);
 
-            if (isVerbose) { verbose(resolvedPath); }
+            Logger.verbose(resolvedPath);
          }
       }
       else if (isFile(opts.path) && s_REGEX_ALLOWED_FILE_EXTENSIONS.test(opts.path))
@@ -172,11 +172,8 @@ async function processPath(opts, config, isVerbose)
          const resolvedPath = path.resolve(opts.path);
          filepaths.add(resolvedPath);
 
-         if (isVerbose)
-         {
-            verbose(`Loading entry point from file path specified:`);
-            verbose(resolvedPath);
-         }
+         Logger.verbose(`Loading entry point from file path specified:`);
+         Logger.verbose(resolvedPath);
       }
    }
    else
@@ -187,12 +184,13 @@ async function processPath(opts, config, isVerbose)
 
       if (!packageObj) { exit(`No 'package.json' found in: ${config.cwd}`); }
 
-      if (isVerbose)
+      if (packageFilepath)
       {
-         verbose(`Processing: ${getRelativePath({ basepath: config.cwd, filepath: config.packageFilepath })}`);
+         Logger.verbose(
+          `Processing: ${getRelativePath({ basepath: config.cwd, filepath: path.toUnix(packageFilepath) })}`);
       }
 
-      const exportsFilepaths = processPathExports(opts, config, packageObj, isVerbose);
+      const exportsFilepaths = processPathExports(opts, config, packageObj);
 
       // If there are exports in `package.json` accept the file paths.
       if (exportsFilepaths.size)
@@ -203,31 +201,31 @@ async function processPath(opts, config, isVerbose)
       {
          if (typeof packageObj?.types === 'string')
          {
-            if (isVerbose) { verbose(`Loading entry points from package.json 'types' property':`); }
+            Logger.verbose(`Loading entry points from package.json 'types' property':`);
 
             if (!isDTSFile(packageObj.types))
             {
-               warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
+               Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
             }
             else
             {
                const resolvedPath = path.resolve(packageObj.types);
-               if (isVerbose) { verbose(resolvedPath); }
+               Logger.verbose(resolvedPath);
                filepaths.add(path.resolve(resolvedPath));
             }
          }
          else if (typeof packageObj?.typings === 'string')
          {
-            if (isVerbose) { verbose(`Loading entry points from package.json 'typings' property':`); }
+            Logger.verbose(`Loading entry points from package.json 'typings' property':`);
 
             if (!isDTSFile(packageObj.typings))
             {
-               warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
+               Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
             }
             else
             {
                const resolvedPath = path.resolve(packageObj.typings);
-               if (isVerbose) { verbose(resolvedPath); }
+               Logger.verbose(resolvedPath);
                filepaths.add(path.resolve(resolvedPath));
             }
          }
@@ -236,7 +234,7 @@ async function processPath(opts, config, isVerbose)
 
    if (filepaths.size === 0)
    {
-      warn(`No entry points found to load for documentation generation.`);
+      Logger.warn(`No entry points found to load for documentation generation.`);
       process.exit(1);
    }
 
@@ -251,25 +249,23 @@ async function processPath(opts, config, isVerbose)
  *
  * @param {object}            opts - CLI options.
  *
- * @param {ProcessedOptions}  config - Processed Options.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed Options.
  *
  * @param {object}            packageObj - Package object.
  *
- * @param {boolean}           isVerbose - Verbose logging.
- *
  * @returns {Set<string>} Any resolved entry points to load.
  */
-function processPathExports(opts, config, packageObj, isVerbose)
+function processPathExports(opts, config, packageObj)
 {
    if (typeof packageObj?.exports !== 'object')
    {
-      if (isVerbose) { verbose(`No 'exports' conditions found in 'package.json'.`); }
+      Logger.verbose(`No 'exports' conditions found in 'package.json'.`);
 
       return new Map();
    }
 
-   const exportsMap = opts.export === 'types' ? processExportsTypes(config, packageObj, isVerbose) :
-    processExportsCondition(config, packageObj, opts.export, isVerbose);
+   const exportsMap = opts.export === 'types' ? processExportsTypes(config, packageObj) :
+    processExportsCondition(config, packageObj, opts.export);
 
    // Process `dmtModuleNames ----------------------------------------------------------------------------------------
 
@@ -342,17 +338,15 @@ function processPathExports(opts, config, packageObj, isVerbose)
 /**
  * Generically processes `package.json` exports conditions from user supplied condition.
  *
- * @param {ProcessedOptions}  config - Processed Options.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed Options.
  *
  * @param {object}   packageObj - Package object.
  *
  * @param {string}   condition - Export condition to find.
  *
- * @param {boolean}  isVerbose - Verbose logging.
- *
  * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
-function processExportsCondition(config, packageObj, condition, isVerbose)
+function processExportsCondition(config, packageObj, condition)
 {
    const exportMap = new Map();
    const exportLog = [];
@@ -361,7 +355,7 @@ function processExportsCondition(config, packageObj, condition, isVerbose)
    {
       if (!isFile(procEntryPath))
       {
-         warn(`Warning: export condition is not a file; "${procExportPath}": ${procEntryPath}`);
+         Logger.warn(`Warning: export condition is not a file; "${procExportPath}": ${procEntryPath}`);
          return;
       }
 
@@ -409,10 +403,10 @@ function processExportsCondition(config, packageObj, condition, isVerbose)
    }
 
    // Log any entry points found.
-   if (exportLog.length && isVerbose)
+   if (exportLog.length)
    {
-      verbose(`Loading entry points from 'package.json' export condition '${condition}':`);
-      for (const entry of exportLog) { verbose(entry); }
+      Logger.verbose(`Loading entry points from 'package.json' export condition '${condition}':`);
+      for (const entry of exportLog) { Logger.verbose(entry); }
    }
 
    return exportMap;
@@ -421,15 +415,13 @@ function processExportsCondition(config, packageObj, condition, isVerbose)
 /**
  * Specifically parse the `types` export condition with a few extra sanity checks.
  *
- * @param {ProcessedOptions}  config - Processed Options.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed Options.
  *
  * @param {object}   packageObj - Package object.
  *
- * @param {boolean}  isVerbose - Verbose logging.
- *
  * @returns {Map<string, string>} Resolved file paths for given export condition.
  */
-function processExportsTypes(config, packageObj, isVerbose)
+function processExportsTypes(config, packageObj)
 {
    const exportMap = new Map();
    const exportLog = [];
@@ -438,7 +430,7 @@ function processExportsTypes(config, packageObj, isVerbose)
    {
       if (!isDTSFile(procEntryPath))
       {
-         warn(`Warning: export condition is not a DTS file; "${procExportPath}": ${procEntryPath}`);
+         Logger.warn(`Warning: export condition is not a DTS file; "${procExportPath}": ${procEntryPath}`);
          return;
       }
 
@@ -485,10 +477,10 @@ function processExportsTypes(config, packageObj, isVerbose)
    }
 
    // Log any entry points found.
-   if (exportLog.length && isVerbose)
+   if (exportLog.length)
    {
-      verbose(`Loading entry points from 'package.json' export condition 'types':`);
-      for (const entry of exportLog) { verbose(entry); }
+      Logger.verbose(`Loading entry points from 'package.json' export condition 'types':`);
+      for (const entry of exportLog) { Logger.verbose(entry); }
    }
 
    return exportMap;
@@ -499,13 +491,11 @@ function processExportsTypes(config, packageObj, isVerbose)
  *
  * @param {object}            opts - CLI options.
  *
- * @param {ProcessedOptions}  config - Processed config options.
- *
- * @param {boolean}           isVerbose - Verbose logging.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed config options.
  *
  * @returns {ts.CompilerOptions} Processed Typescript compiler options.
  */
-function processTSConfig(opts, config, isVerbose)
+function processTSConfig(opts, config)
 {
    let tsconfigPath;
 
@@ -539,7 +529,7 @@ function processTSConfig(opts, config, isVerbose)
 
    if (tsconfigPath)
    {
-      if (isVerbose) { verbose(`Loading TS compiler options from 'tsconfig' path: ${tsconfigPath}`); }
+      Logger.verbose(`Loading TS compiler options from 'tsconfig' path: ${tsconfigPath}`);
 
       try
       {
@@ -583,13 +573,11 @@ function processTSConfig(opts, config, isVerbose)
  *
  * @param {object}            opts - CLI options.
  *
- * @param {ProcessedOptions}  config - Processed config options.
- *
- * @param {boolean}           isVerbose - Verbose logging.
+ * @param {import('../generator').PkgTypeDocConfig}  config - Processed config options.
  *
  * @returns {object} TypeDoc JSON object.
  */
-function processTypedoc(opts, config, isVerbose)
+function processTypedoc(opts, config)
 {
    let typedocPath;
    let typedocJSON;
@@ -606,7 +594,7 @@ function processTypedoc(opts, config, isVerbose)
 
    if (typedocPath)
    {
-      if (isVerbose) { verbose(`Loading TypeDoc options from 'typedoc' path: ${typedocPath}`); }
+      Logger.verbose(`Loading TypeDoc options from 'typedoc' path: ${typedocPath}`);
 
       try
       {
@@ -640,7 +628,7 @@ function validateCompilerOptions(compilerOptions)
 
    if (errors.length > 0)
    {
-      for (const err of errors) { error(`[TS] ${ts.flattenDiagnosticMessageText(err.messageText, '\n')}`); }
+      for (const err of errors) { Logger.error(`[TS] ${ts.flattenDiagnosticMessageText(err.messageText, '\n')}`); }
       return void 0;
    }
 
@@ -648,78 +636,12 @@ function validateCompilerOptions(compilerOptions)
 }
 
 /**
- * Log an error message.
- *
- * @param {string} message - A message.
- */
-function error(message)
-{
-   console.error(`[31m[typedoc-pkg] ${message}[0m`);
-}
-
-/**
  * Exit with error message.
  *
  * @param {string} message - A message.
- *
- * @param {boolean} [exit=true] - Invoke `process.exit`.
  */
-function exit(message, exit = true)
+function exit(message)
 {
-   console.error(`[31m[typedoc-pkg] ${message}[0m`);
-   if (exit) { process.exit(1); }
+   Logger.error(`[31m[typedoc-pkg] ${message}[0m`);
+   process.exit(1);
 }
-
-/**
- * Log a verbose message.
- *
- * @param {string} message - A message.
- */
-function verbose(message)
-{
-   console.log(`[35m[typedoc-pkg] ${message}[0m`);
-}
-
-/**
- * Log a warning message.
- *
- * @param {string} message - A message.
- */
-function warn(message)
-{
-   console.warn(`[33m[typedoc-pkg] ${message}[0m`);
-}
-
-/**
- * @typedef {object} ProcessedOptions
- *
- * @property {ts.CompilerOptions} compilerOptions Typescript compiler options.
- *
- * @property {string} cwd Current Working Directory.
- *
- * @property {boolean} dmtNavCompact Module paths should compact singular paths in navigation.
- *
- * @property {boolean} dmtNavFlat Module paths should be flattened in navigation.
- *
- * @property {Record<string, string>} dmtModuleNames Module name substitution.
- *
- * @property {string[]} entryPoints All files to include in doc generation.
- *
- * @property {boolean} entryPointsDTS True if all entry points are Typescript declarations.
- *
- * @property {boolean} fromPackage Indicates that the entry point files are from package exports.
- *
- * @property {boolean} hasCompilerOptions When true indicates that compiler options were loaded from CLI option.
- *
- * @property {string[]} linkPlugins All API link plugins to load.
- *
- * @property {string} out Documentation output directory.
- *
- * @property {string} packageName The name attribute from associated package.json or custom name from CLI option.
- *
- * @property {object} packageObj Any found package.json object.
- *
- * @property {string} packageFilepath File path of found package.json.
- *
- * @property {object} typedocJSON Options loaded from --typedoc CLI option.
- */
