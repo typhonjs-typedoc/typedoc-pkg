@@ -1,3 +1,5 @@
+import { isFile }       from '@typhonjs-utils/file-util';
+
 import {
    Application,
    Logger,
@@ -6,8 +8,6 @@ import {
    ReflectionKind,
    TSConfigReader,
    TypeDocReader }      from 'typedoc';
-
-import { isFile }       from '../util/index.js';
 
 /**
  * Generate docs
@@ -105,10 +105,7 @@ async function createTypedocOptions(config)
    // Add any API link plugins.
    for (const linkPlugin of config.linkPlugins)
    {
-      if (!optionsDoc.plugin.includes(linkPlugin))
-      {
-         optionsDoc.plugin.push(linkPlugin);
-      }
+      if (!optionsDoc.plugin.includes(linkPlugin)) { optionsDoc.plugin.push(linkPlugin); }
    }
 
    return optionsDoc;
@@ -213,13 +210,13 @@ export const kindSortOrder = [
    'Interface',
    'Function',
    'Namespace',
+   'Variable',
    'Enum',
    'EnumMember',
    'TypeAlias',
    'Reference',
    'Constructor',
    'Property',
-   'Variable',
    'Accessor',
    'Method',
    'Parameter',
