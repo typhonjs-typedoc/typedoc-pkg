@@ -63,18 +63,21 @@ async function processOptions(opts)
    /** @type {Partial<import('../generator').PkgTypeDocConfig>} */
    const config = {
       cwd,
+      dmtNavStyle: void 0,
       fromPackage: false,
       hasCompilerOptions: false,
       packageObj
    };
 
-   const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
-   if (isVerbose) { Logger.logLevel = 'verbose'; }
+   if (Logger.isValidLevel(opts?.loglevel)) { Logger.logLevel = opts.loglevel; }
+
+   if (opts?.['dmt-nav-style'] === 'compact' || opts?.['dmt-nav-style'] === 'flat')
+   {
+      config.dmtNavStyle = opts['dmt-nav-style'];
+   }
 
    config.compilerOptions = processTSConfig(opts, config);
-   config.dmtNavCompact = typeof opts?.['dmt-nav-compact'] === 'boolean' ? opts['dmt-nav-compact'] : false;
-   config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
-   config.linkPlugins = processLink(opts);
+   config.linkPlugins = processAPILink(opts);
    config.packageName = opts.name ?? packageObj?.name ?? '';
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.typedocJSON = processTypedoc(opts, config);
@@ -92,19 +95,19 @@ const s_LINK_PLUGINS = new Map([
 ]);
 
 /**
- * Processes `opts.link` to find the appropriate link plugins.
+ * Processes `opts.[api-link]` to find the appropriate link plugins.
  *
  * @param {object}   opts - CLI options.
  *
  * @returns {string[]} List of link plugins enabled.
  */
-function processLink(opts)
+function processAPILink(opts)
 {
    const plugins = [];
 
-   if (typeof opts?.link === 'string')
+   if (typeof opts?.['api-link'] === 'string')
    {
-      const entries = new Set(opts.link.split(','));
+      const entries = new Set(opts['api-link'].split(','));
 
       // Detect when dom and worker are configured together as they are exclusive.
       if (entries.has('dom') && entries.has('worker'))
@@ -642,6 +645,6 @@ function validateCompilerOptions(compilerOptions)
  */
 function exit(message)
 {
-   Logger.error(`[31m[typedoc-pkg] ${message}[0m`);
+   Logger.error(message);
    process.exit(1);
 }

@@ -12,15 +12,15 @@ const description = `Generate documentation with TypeDoc automatically from 'pac
 const program = sade('typedoc-pkg', true)
    .version(packageObj?.version)
    .describe(description)
+   .option('-a, --api-link', `Enable API linking; provide a comma separated string including 'dom', 'esm', and / or 'worker'.`)
    .option('-d, --typedoc', `Provide a path to custom 'typedoc.json' file.`)
    .option('-e, --export', `Provide a specific 'package.json' export condition to parse for entry points.`, 'types')
-   .option('-l, --link', `Enable API linking; provide a comma separated string including 'dom', 'esm', and 'worker'.`)
+   .option('-l, --loglevel', `Specify logging level: 'all', 'verbose', 'info', 'warn', or 'error'`)
    .option('-n, --name', `Package name substitution; instead of 'name' attribute of 'package.json'.`)
    .option('-o, --output', `Provide a directory path for generated documentation.`, 'docs')
    .option('-p, --path', `Provide a file or directory path to configure as entry points for documentation generation.`)
    .option('-t, --tsconfig', `Provide a path to custom 'tsconfig.json' file.`)
-   .option('--dmt-nav-compact', `[Default Modern Theme] Package / module navigation singular paths are compacted.`)
-   .option('--dmt-nav-flat', `[Default Modern Theme] Package / module navigation paths are flattened.`)
+   .option('--dmt-nav-style', `[Default Modern Theme] Modify navigation package / module paths to be 'flat' or 'compact' singular paths.`)
    .option('--verbose', `Verbosely log configuration setup.`)
    .action(generate);
 

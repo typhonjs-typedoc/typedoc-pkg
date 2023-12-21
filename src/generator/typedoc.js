@@ -169,9 +169,8 @@ function setDMTOptions(config, options)
       options.setValue('dmtModuleNames', config.dmtModuleNames);
    }
 
-   if (!options.isSet('dmtNavModuleCompact') && config.dmtNavCompact) { options.setValue('dmtNavModuleCompact', true); }
-
-   if (!options.isSet('dmtNavModuleDepth') && config.dmtNavFlat) { options.setValue('dmtNavModuleDepth', 0); }
+   if (config.dmtNavStyle === 'compact') { options.setValue('dmtNavModuleCompact', true); }
+   if (config.dmtNavStyle === 'flat') { options.setValue('dmtNavModuleDepth', 0); }
 
    if (!options.isSet('dmtModuleAsPackage') && config.fromPackage)
    {
