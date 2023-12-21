@@ -1,4 +1,6 @@
-import fs from 'node:fs';
+import fs   from 'node:fs';
+
+import path from 'upath';
 
 /**
  * @param {string}   filepath - Path to check.
@@ -45,4 +47,18 @@ export function isDirectory(dirpath)
    {
       return false;
    }
+}
+
+/**
+ * Returns relative path from provided current working directory.
+ *
+ * @param {string}   filepath - Path to make relative.
+ *
+ * @param {string}   [cwd=process.cwd()] Current working directory.
+ *
+ * @returns {string} Relative path.
+ */
+export function relativePath(filepath, cwd = process.cwd())
+{
+   return path.relative(cwd, filepath);
 }

@@ -15,7 +15,8 @@ import { generateDocs }       from '../typedoc/index.js';
 import {
    isDirectory,
    isDTSFile,
-   isFile }                   from '../util/index.js';
+   isFile,
+   relativePath }             from '../util/index.js';
 
 // Only allow standard JS / TS files.
 const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -177,11 +178,7 @@ async function processPath(opts, config, isVerbose)
 
       if (!packageObj) { exit(`No 'package.json' found in: ${config.cwd}`); }
 
-      if (isVerbose)
-      {
-         verbose(`Processing 'package.json':`);
-         verbose(config.packageFilepath);
-      }
+      if (isVerbose) { verbose(`Processing: ${relativePath(config.packageFilepath)}`); }
 
       const exportsFilepaths = processPathExports(opts, config, packageObj, isVerbose);
 
@@ -342,7 +339,7 @@ function processExportsCondition(packageObj, condition, isVerbose)
       if (exportMap.has(filepath)) { continue; }
 
       exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${filepath}`);
+      exportLog.push(`"${exportPath}": ${relativePath(filepath)}`);
    }
 
    // Log any entry points found.
@@ -412,7 +409,7 @@ function processExportsTypes(packageObj, isVerbose)
       if (exportMap.has(filepath)) { continue; }
 
       exportMap.set(filepath, exportPath);
-      exportLog.push(`"${exportPath}": ${filepath}`);
+      exportLog.push(`"${exportPath}": ${relativePath(filepath)}`);
    }
 
    // Log any entry points found.
