@@ -59,15 +59,16 @@ async function processOptions(opts)
 
    const isVerbose = typeof opts?.verbose === 'boolean' ? opts.verbose : false;
 
-   // Sets `config.entryPoints` / `config.entryPointsDTS`.
-   await processPath(opts, config, isVerbose);
-
    config.compilerOptions = processTSConfig(opts, config, isVerbose);
    config.dmtNavCompact = typeof opts?.['dmt-nav-compact'] === 'boolean' ? opts['dmt-nav-compact'] : false;
    config.dmtNavFlat = typeof opts?.['dmt-nav-flat'] === 'boolean' ? opts['dmt-nav-flat'] : false;
    config.linkPlugins = processLink(opts, isVerbose);
+   config.packageName = opts.name ?? packageObj?.name ?? '';
    config.out = typeof opts?.output === 'string' ? opts.output : 'docs';
    config.typedocJSON = processTypedoc(opts, config, isVerbose);
+
+   // Sets `config.entryPoints` / `config.entryPointsDTS`.
+   await processPath(opts, config, isVerbose);
 
    return config;
 }
@@ -275,7 +276,7 @@ function processPathExports(opts, config, packageObj, isVerbose)
       for (let cntr = 0; cntr < filepaths.length; cntr++)
       {
          const relativeDir = path.dirname(getRelativePath({ basepath, filepath: filepaths[cntr] }));
-         dmtModuleNames[relativeDir] = path.join(packageObj.name, exportPaths[cntr]);
+         dmtModuleNames[relativeDir] = path.join(config.packageName, exportPaths[cntr]);
       }
 
       config.dmtModuleNames = dmtModuleNames;
@@ -644,6 +645,8 @@ function warn(message)
  * @property {string[]} linkPlugins All API link plugins to load.
  *
  * @property {string} out Documentation output directory.
+ *
+ * @property {string} packageName The name attribute from associated package.json or custom name from CLI option.
  *
  * @property {object} packageObj Any found package.json object.
  *
