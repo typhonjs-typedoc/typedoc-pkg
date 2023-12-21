@@ -14,7 +14,7 @@ import * as resolvePkg        from 'resolve.exports';
 import ts                     from 'typescript';
 import path                   from 'upath';
 
-import { generateDocs }       from '../typedoc/index.js';
+import { generateTypedoc }    from '../generator/typedoc.js';
 
 // Only allow standard JS / TS files.
 const s_REGEX_ALLOWED_FILE_EXTENSIONS = /\.(js|mjs|ts|mts)$/;
@@ -32,7 +32,7 @@ export async function generate(opts)
 {
    const config = await processOptions(opts);
 
-   await generateDocs(config);
+   await generateTypedoc(config);
 }
 
 /**

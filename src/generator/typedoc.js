@@ -10,13 +10,13 @@ import {
    TypeDocReader }      from 'typedoc';
 
 /**
- * Generate docs
+ * Generate docs from typedoc-pkg configuration.
  *
- * @param {import('../cli').ProcessedOptions} config - The processed CLI options.
+ * @param {import('./').PkgTypeDocConfig} config - typedoc-pkg configuration.
  *
  * @returns {Promise<void>}
  */
-export async function generateDocs(config)
+export async function generateTypedoc(config)
 {
    // Create a new TypeDoc application instance with no default config readers.
    const typedocOptions = await createTypedocOptions(config);
@@ -29,7 +29,7 @@ export async function generateDocs(config)
 
    const app = await Application.bootstrapWithPlugins(typedocOptions, optionReaders);
 
-   setCLIOptions(config, app.options);
+   setDefaultOptions(config, app.options);
 
    // Set any extra options for DMT.
    if ('default-modern' === app.options.getValue('theme')) { setDMTOptions(config, app.options); }
@@ -59,9 +59,9 @@ export async function generateDocs(config)
 /**
  * Create the TypeDoc options.
  *
- * @param {import('../cli').ProcessedOptions}  config - Processed CLI options.
+ * @param {import('./').PkgTypeDocConfig}  config - typedoc-pkg configuration.
  *
- * @returns {object} TypeDoc configuration.
+ * @returns {Partial<import('typedoc').TypeDocOptions>} TypeDoc options.
  */
 async function createTypedocOptions(config)
 {
@@ -112,13 +112,13 @@ async function createTypedocOptions(config)
 }
 
 /**
- * Set options from CLI options.
+ * Set default options from typedoc-pkg configuration.
  *
- * @param {import('../cli').ProcessedOptions}   config - CLI options.
+ * @param {import('./').PkgTypeDocConfig}   config - typedoc-pkg configuration.
  *
  * @param {import('typedoc').Options}   options - TypeDoc options.
  */
-function setCLIOptions(config, options)
+function setDefaultOptions(config, options)
 {
    // Optional values to set if not defined. -------------------------------------------------------------------------
 
@@ -150,9 +150,9 @@ function setCLIOptions(config, options)
 }
 
 /**
- * Set DMT options from CLI options.
+ * Set DMT options from typedoc-pkg configuration.
  *
- * @param {import('../cli').ProcessedOptions}   config - CLI options.
+ * @param {import('./').PkgTypeDocConfig}   config - typedoc-pkg configuration.
  *
  * @param {import('typedoc').Options}   options - TypeDoc options.
  */
