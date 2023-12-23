@@ -2,12 +2,20 @@ import { isFile }       from '@typhonjs-utils/file-util';
 
 import {
    Application,
-   Logger,
+   Logger as TDLogger,
    Options,
    PackageJsonReader,
    ReflectionKind,
    TSConfigReader,
    TypeDocReader }      from 'typedoc';
+
+import { Logger }       from '#util';
+
+export const linkPluginMap = new Map([
+   ['dom', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/dom/2023'],
+   ['esm', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/esm/2023'],
+   ['worker', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/worker/2023']
+]);
 
 /**
  * Generate docs from typedoc-pkg configuration.
@@ -40,17 +48,17 @@ export async function generateTypedoc(config)
       app.options.setCompilerOptions(config.entryPoints, config.compilerOptions, []);
    }
 
-   // Convert TypeScript sources to a TypeDoc ProjectReflection
+   // Convert TypeScript sources to a TypeDoc ProjectReflection.
    const project = await app.convert();
 
-   // Generate the documentation
+   // Generate the documentation.
    if (project)
    {
-      await app.generateDocs(project, config.out);
+      await app.generateDocs(project, config.output);
    }
    else
    {
-      console.log('[33m[typedoc-pkg] Warning: No project generated[0m');
+      Logger.warn('Warning: No project generated');
    }
 }
 
@@ -69,7 +77,7 @@ async function createTypedocOptions(config)
    const options = new Options();
    options.addReader(new TypeDocReader());
    options.addReader(new PackageJsonReader());
-   await options.read(new Logger(), config.cwd);
+   await options.read(new TDLogger(), config.cwd);
 
    // If no theme is set then use DMT / `default-modern`.
    const theme = options.isSet('theme') ? options.getValue('theme') : 'default-modern';
@@ -86,7 +94,7 @@ async function createTypedocOptions(config)
       entryPointStrategy: 'resolve',
 
       // Output directory for the generated documentation
-      out: config.out,
+      out: config.output,
    };
 
    const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, optionsRequired);
