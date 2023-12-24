@@ -1,13 +1,22 @@
 import fs                     from 'node:fs';
 
-import { getRelativePath }    from '@typhonjs-utils/file-util';
+import {
+   commonPath,
+   getRelativePath,
+   isDirectory,
+   isFile }                   from '@typhonjs-utils/file-util';
 import { isObject }           from '@typhonjs-utils/object';
 import { getPackageWithPath } from "@typhonjs-utils/package-json";
+import { globSync }           from 'glob';
+import isGlob                 from 'is-glob';
+import * as resolvePkg        from 'resolve.exports';
 import path                   from 'upath';
 
 import { generateTypedoc }    from './typedoc.js';
 
 import {
+   isDTSFile,
+   regexAllowedFiles,
    regexIsDTSFile,
    validateCompilerOptions,
    validateConfig }           from './validation.js';
@@ -44,7 +53,7 @@ export async function generateDocs(config)
    }
 
    console.log(`!! generateDocs - processedConfigOrError: `, processedConfigOrError);
-   // await generateTypedoc(processedConfigOrError);
+   await generateTypedoc(processedConfigOrError);
 }
 
 /**
@@ -72,8 +81,6 @@ async function processConfig(origConfig)
 
    if (!validateConfig(config)) { return `Aborting as 'config' failed validation.`; }
 
-   console.log(`!! processConfig - config `, config);
-
    /** @type {Partial<PkgTypeDocConfig>} */
    const pkgConfig = {
       dmtNavStyle: config.dmtNavStyle,
@@ -92,8 +99,6 @@ async function processConfig(origConfig)
    const typedocJSONOrError = processTypedoc(config);
    if (typeof typedocJSONOrError === 'string') { return typedocJSONOrError; }
    pkgConfig.typedocJSON = typedocJSONOrError;
-
-   // config.packageName = opts.name ?? packageObj?.name ?? '';
 
    // Sets `config.entryPoints` / `config.entryPointsDTS`.
    const processPathError = processPath(config, pkgConfig);
@@ -115,11 +120,13 @@ function processPath(config, pkgConfig)
 {
    let filepaths = new Set();
 
-   if (config.path.endsWith('package.json'))
+   const isPathDir = isDirectory(config.path);
+
+   if (isPathDir || config.path.endsWith('package.json'))
    {
       pkgConfig.fromPackage = true;
 
-      const dirname = path.dirname(path.resolve(config.path));
+      const dirname = isPathDir ? path.resolve(config.path) : path.dirname(path.resolve(config.path));
 
       const origCWD = process.cwd();
 
@@ -129,54 +136,56 @@ function processPath(config, pkgConfig)
 
       if (!packageObj) { return `No 'package.json' found in: ${dirname}`; }
 
+      if (typeof config.packageName !== 'string') { config.packageName = packageObj.name; }
+
       if (filepath)
       {
          Logger.verbose(
           `Processing: ${getRelativePath({ basepath: origCWD, filepath: path.toUnix(filepath) })}`);
       }
-      //
-      // const exportsFilepaths = processPathExports(opts, config, packageObj);
-      //
-      // // If there are exports in `package.json` accept the file paths.
-      // if (exportsFilepaths.size)
-      // {
-      //    filepaths = exportsFilepaths;
-      // }
-      // else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
-      // {
-      //    if (typeof packageObj?.types === 'string')
-      //    {
-      //       Logger.verbose(`Loading entry points from package.json 'types' property':`);
-      //
-      //       if (!isDTSFile(packageObj.types))
-      //       {
-      //          Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
-      //       }
-      //       else
-      //       {
-      //          const resolvedPath = path.resolve(packageObj.types);
-      //          Logger.verbose(resolvedPath);
-      //          filepaths.add(path.resolve(resolvedPath));
-      //       }
-      //    }
-      //    else if (typeof packageObj?.typings === 'string')
-      //    {
-      //       Logger.verbose(`Loading entry points from package.json 'typings' property':`);
-      //
-      //       if (!isDTSFile(packageObj.typings))
-      //       {
-      //          Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
-      //       }
-      //       else
-      //       {
-      //          const resolvedPath = path.resolve(packageObj.typings);
-      //          Logger.verbose(resolvedPath);
-      //          filepaths.add(path.resolve(resolvedPath));
-      //       }
-      //    }
-      // }
+
+      const exportsFilepaths = processPathExports(config, pkgConfig, packageObj);
+
+      // If there are exports in `package.json` accept the file paths.
+      if (exportsFilepaths.size)
+      {
+         filepaths = exportsFilepaths;
+      }
+      else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
+      {
+         if (typeof packageObj?.types === 'string')
+         {
+            Logger.verbose(`Loading entry points from package.json 'types' property':`);
+
+            if (!isDTSFile(packageObj.types))
+            {
+               Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
+            }
+            else
+            {
+               const resolvedPath = path.resolve(packageObj.types);
+               Logger.verbose(resolvedPath);
+               filepaths.add(path.resolve(resolvedPath));
+            }
+         }
+         else if (typeof packageObj?.typings === 'string')
+         {
+            Logger.verbose(`Loading entry points from package.json 'typings' property':`);
+
+            if (!isDTSFile(packageObj.typings))
+            {
+               Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
+            }
+            else
+            {
+               const resolvedPath = path.resolve(packageObj.typings);
+               Logger.verbose(resolvedPath);
+               filepaths.add(path.resolve(resolvedPath));
+            }
+         }
+      }
    }
-   else
+   else if (isFile(config.path) && regexAllowedFiles.test(config.path))
    {
       const resolvedPath = path.resolve(config.path);
       filepaths.add(resolvedPath);
@@ -195,6 +204,247 @@ function processPath(config, pkgConfig)
 
    // Sets true if every entry point a Typescript declaration.
    pkgConfig.entryPointsDTS = pkgConfig.entryPoints.every((filepath) => regexIsDTSFile.test(filepath));
+}
+
+/**
+ * Attempt to parse any `package.json` exports conditions.
+ *
+ * @param {GenerateConfig} config - Processed Options.
+ *
+ * @param {PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
+ *
+ * @param {object}         packageObj - Package object.
+ *
+ * @returns {Set<string>} Any resolved entry points to load.
+ */
+function processPathExports(config, pkgConfig, packageObj)
+{
+   if (typeof packageObj?.exports !== 'object')
+   {
+      Logger.verbose(`No 'exports' conditions found in 'package.json'.`);
+
+      return new Map();
+   }
+
+   const exportsMap = config.exportCondition === 'types' ? processExportsTypes(config, packageObj) :
+    processExportsCondition(config, packageObj);
+
+   // Process `dmtModuleNames ----------------------------------------------------------------------------------------
+
+   const filepaths = [...exportsMap.keys()];
+
+   if (filepaths.length)
+   {
+      const exportPaths = [...exportsMap.values()];
+      const basepath = commonPath(...filepaths);
+
+      const dmtModuleNames = {};
+
+      for (let cntr = 0; cntr < filepaths.length; cntr++)
+      {
+         const filepath = filepaths[cntr];
+         const exportPath = exportPaths[cntr];
+
+         if (isGlob(exportPath))
+         {
+            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+
+            if (relativeDir === '.')
+            {
+               // Path is at the project root, so use filename without extension as package / module name.
+               const filename = path.basename(filepath).split('.')[0];
+               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            }
+            else
+            {
+               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // including file name without extension is used except for file names that are `index` which is removed.
+               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+
+               if (!relativePath) { continue; }
+
+               // Path is located in a sub-directory, so join it with package name.
+               dmtModuleNames[relativePath] = path.join(config.packageName, relativePath);
+            }
+         }
+         else
+         {
+            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+
+            if (relativeDir === '.')
+            {
+               // Path is at the project root, so use filename without extension as package / module name.
+               const filename = path.basename(filepath).split('.')[0];
+
+               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            }
+            else
+            {
+               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // including file name without extension is used except for file names that are `index` which is removed.
+               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+
+               if (!relativePath) { continue; }
+
+               // Path is located in a sub-directory, so join it with package name.
+               dmtModuleNames[relativePath] = path.join(config.packageName, exportPath);
+            }
+         }
+      }
+
+      pkgConfig.dmtModuleNames = dmtModuleNames;
+   }
+
+   return new Set(filepaths);
+}
+
+/**
+ * Generically processes `package.json` exports conditions from user supplied condition.
+ *
+ * @param {GenerateConfig}  config - Processed Options.
+ *
+ * @param {object}   packageObj - Package object.
+ *
+ * @returns {Map<string, string>} Resolved file paths for given export condition.
+ */
+function processExportsCondition(config, packageObj)
+{
+   const exportMap = new Map();
+   const exportLog = [];
+
+   const processExport = (procEntryPath, procExportPath) =>
+   {
+      if (!isFile(procEntryPath))
+      {
+         Logger.warn(`Warning: export condition is not a file; "${procExportPath}": ${procEntryPath}`);
+         return;
+      }
+
+      const filepath = path.resolve(procEntryPath);
+
+      if (exportMap.has(filepath)) { return; }
+
+      exportMap.set(filepath, procExportPath);
+      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+   };
+
+   for (const exportPath in packageObj.exports)
+   {
+      let result;
+
+      try
+      {
+         result = resolvePkg.exports(packageObj, exportPath, { conditions: [config.exportCondition] });
+      }
+      catch (err)
+      {
+         continue;
+      }
+
+      if (!Array.isArray(result) || result.length === 0) { continue; }
+
+      const entryPath = result[0];
+
+      if (typeof entryPath !== 'string') { continue; }
+
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
+
+      if (!regexAllowedFiles.test(entryPath)) { continue; }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
+      {
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
+      }
+      else
+      {
+         processExport(entryPath, exportPath);
+      }
+   }
+
+   // Log any entry points found.
+   if (exportLog.length)
+   {
+      Logger.verbose(`Loading entry points from 'package.json' export condition '${config.exportCondition}':`);
+      for (const entry of exportLog) { Logger.verbose(entry); }
+   }
+
+   return exportMap;
+}
+
+/**
+ * Specifically parse the `types` export condition with a few extra sanity checks.
+ *
+ * @param {GenerateConfig}  config - Processed Options.
+ *
+ * @param {object}   packageObj - Package object.
+ *
+ * @returns {Map<string, string>} Resolved file paths for given export condition.
+ */
+function processExportsTypes(config, packageObj)
+{
+   const exportMap = new Map();
+   const exportLog = [];
+
+   const processExport = (procEntryPath, procExportPath) =>
+   {
+      if (!isDTSFile(procEntryPath))
+      {
+         Logger.warn(`Warning: export condition is not a DTS file; "${procExportPath}": ${procEntryPath}`);
+         return;
+      }
+
+      const filepath = path.resolve(procEntryPath);
+
+      if (exportMap.has(filepath)) { false; }
+
+      exportMap.set(filepath, procExportPath);
+      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+   };
+
+   for (const exportPath in packageObj.exports)
+   {
+      let result;
+
+      try
+      {
+         result = resolvePkg.exports(packageObj, exportPath, { conditions: ['types'] });
+      }
+      catch (err)
+      {
+         continue;
+      }
+
+      if (!Array.isArray(result) || result.length === 0) { continue; }
+
+      const entryPath = result[0];
+
+      if (typeof entryPath !== 'string') { continue; }
+
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
+      if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts')) { continue; }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
+      {
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
+      }
+      else
+      {
+         processExport(entryPath, exportPath);
+      }
+   }
+
+   // Log any entry points found.
+   if (exportLog.length)
+   {
+      Logger.verbose(`Loading entry points from 'package.json' export condition 'types':`);
+      for (const entry of exportLog) { Logger.verbose(entry); }
+   }
+
+   return exportMap;
 }
 
 /**

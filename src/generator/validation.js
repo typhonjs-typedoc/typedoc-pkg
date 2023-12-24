@@ -1,4 +1,6 @@
-import { isFile }             from '@typhonjs-utils/file-util';
+import {
+   isDirectory,
+   isFile }                   from '@typhonjs-utils/file-util';
 import {
    isIterable,
    isObject }                 from '@typhonjs-utils/object';
@@ -13,6 +15,16 @@ import { Logger }             from '#util';
 // Only allow standard JS / TS files.
 export const regexAllowedFiles = /\.(js|mjs|ts|mts)$/;
 export const regexIsDTSFile = /\.d\.(cts|ts|mts)$/;
+
+/**
+ * @param {string}   filepath - Path to check.
+ *
+ * @returns {boolean} Returns if the given path is a file.
+ */
+export function isDTSFile(filepath)
+{
+   return isFile(filepath) && regexIsDTSFile.test(filepath);
+}
 
 /**
  * Validates the TS compiler options.
@@ -82,13 +94,17 @@ export function validateConfig(config)
 
       const unixPath = path.toUnix(config.path);
 
-      if (!isFile(unixPath))
+      const isPathDir = isDirectory(unixPath);
+      const isPathFile = isFile(unixPath);
+
+      if (!(isPathDir || isPathFile))
       {
-         Logger.error(`Error: 'path' is not a file; ${unixPath}`);
+         Logger.error(`Error: 'path' is not a directory or file; ${unixPath}`);
          return false;
       }
 
-      if (!(regexIsDTSFile.test(unixPath) || regexAllowedFiles.test(unixPath) || unixPath.endsWith('package.json')))
+      if (isPathFile &&
+       !(regexIsDTSFile.test(unixPath) || regexAllowedFiles.test(unixPath) || unixPath.endsWith('package.json')))
       {
          Logger.error(`Error: 'path' is not an allowed entry point or 'package.json' file; ${unixPath}`);
          return false;
@@ -96,7 +112,6 @@ export function validateConfig(config)
    }
    else
    {
-      // Find local `package.json`
       const cwd = process.cwd();
 
       // Find local `package.json` only.
