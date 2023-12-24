@@ -229,73 +229,101 @@ function processPathExports(config, pkgConfig, packageObj)
    const exportsMap = config.exportCondition === 'types' ? processExportsTypes(config, packageObj) :
     processExportsCondition(config, packageObj);
 
-   // Process `dmtModuleNames ----------------------------------------------------------------------------------------
-
    const filepaths = [...exportsMap.keys()];
 
-   if (filepaths.length)
+   // Process `pkgConfig.dmtModuleNames` TypeDoc module name substitutions for package.json exports.
+   if (filepaths.length) { pkgConfig.dmtModuleNames = processPathExportsMap(config, filepaths, exportsMap); }
+
+   return new Set(filepaths);
+}
+
+/**
+ * Processes the `exportsMap` output and creates a `dmtModuleNames` remapping object for the DMT to remap TypeDoc
+ * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
+ * patterns.
+ *
+ * @param {GenerateConfig}    config - Generate config.
+ *
+ * @param {string[]}          filepaths - File path keys of `exportsMap`.
+ *
+ * @param {Map<string, {}>}   exportsMap - Generated exports mapping from export condition processing.
+ */
+function processPathExportsMap(config, filepaths, exportsMap)
+{
+   const exportData = [...exportsMap.values()];
+   const basepath = commonPath(...filepaths);
+
+   const dmtModuleNames = {};
+
+   for (let cntr = 0; cntr < filepaths.length; cntr++)
    {
-      const exportPaths = [...exportsMap.values()];
-      const basepath = commonPath(...filepaths);
+      const filepath = filepaths[cntr];
+      const { entryPath, exportPath, globEntryPath } = exportData[cntr];
 
-      const dmtModuleNames = {};
-
-      for (let cntr = 0; cntr < filepaths.length; cntr++)
+      if (isGlob(exportPath) && globEntryPath)
       {
-         const filepath = filepaths[cntr];
-         const exportPath = exportPaths[cntr];
+         const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
 
-         if (isGlob(exportPath))
+         // Remove any leading relative path / replace first wildcard occurrence with a capture group.
+         const regexPattern = globEntryPath.replace(/^(\.+\/)+/g, '').replace(/\*/, '(.*)');
+
+         // Match / Capture / Replace wildcard.
+         const match = entryPath.match(new RegExp(`${regexPattern}`));
+         if (!match)
          {
-            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+            Logger.verbose(`Could not resolve wildcard export for: "${exportPath}: "${globEntryPath}"`);
+            continue;
+         }
 
-            if (relativeDir === '.')
-            {
-               // Path is at the project root, so use filename without extension as package / module name.
-               const filename = path.basename(filepath).split('.')[0];
-               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
-            }
-            else
-            {
-               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
-               // including file name without extension is used except for file names that are `index` which is removed.
-               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+         const resolvedExportPath = exportPath.replaceAll('*', match[1]);
 
-               if (!relativePath) { continue; }
+         if (relativeDir === '.')
+         {
+            // Path is at the common root, so use filename without extension as package / module name.
+            const filename = path.basename(filepath).split('.')[0];
 
-               // Path is located in a sub-directory, so join it with package name.
-               dmtModuleNames[relativePath] = path.join(config.packageName, relativePath);
-            }
+            // Join any resolved export path from the wildcard substitution.
+            dmtModuleNames[filename] = path.join(config.packageName, resolvedExportPath);
          }
          else
          {
-            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
+            // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+            // including file name without extension is used except for file names that are `index` which is removed.
+            const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
 
-            if (relativeDir === '.')
-            {
-               // Path is at the project root, so use filename without extension as package / module name.
-               const filename = path.basename(filepath).split('.')[0];
+            if (!relativePath) { continue; }
 
-               dmtModuleNames[filename] = `${config.packageName}/${filename}`;
-            }
-            else
-            {
-               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
-               // including file name without extension is used except for file names that are `index` which is removed.
-               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
-
-               if (!relativePath) { continue; }
-
-               // Path is located in a sub-directory, so join it with package name.
-               dmtModuleNames[relativePath] = path.join(config.packageName, exportPath);
-            }
+            // Join any resolved export path from the wildcard substitution.
+            dmtModuleNames[relativePath] = path.join(config.packageName, resolvedExportPath);
          }
       }
+      else
+      {
+         const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
 
-      pkgConfig.dmtModuleNames = dmtModuleNames;
+         if (relativeDir === '.')
+         {
+            // Path is at the common root, so use filename without extension as package / module name.
+            const filename = path.basename(filepath).split('.')[0];
+
+            // dmtModuleNames[filename] = `${config.packageName}/${filename}`;
+            dmtModuleNames[filename] = path.join(config.packageName, exportPath);
+         }
+         else
+         {
+            // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+            // including file name without extension is used except for file names that are `index` which is removed.
+            const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
+
+            if (!relativePath) { continue; }
+
+            // Path is located in a sub-directory, so join it with package name.
+            dmtModuleNames[relativePath] = path.join(config.packageName, exportPath);
+         }
+      }
    }
 
-   return new Set(filepaths);
+   return dmtModuleNames;
 }
 
 /**
@@ -305,27 +333,28 @@ function processPathExports(config, pkgConfig, packageObj)
  *
  * @param {object}   packageObj - Package object.
  *
- * @returns {Map<string, string>} Resolved file paths for given export condition.
+ * @returns {Map<string, { entryPath: string, exportPath: string, globEntryPath: string }>} Resolved file paths for
+ *          given export condition.
  */
 function processExportsCondition(config, packageObj)
 {
    const exportMap = new Map();
    const exportLog = [];
 
-   const processExport = (procEntryPath, procExportPath) =>
+   const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
    {
-      if (!isFile(procEntryPath))
+      if (!isFile(pEntryPath))
       {
-         Logger.warn(`Warning: export condition is not a file; "${procExportPath}": ${procEntryPath}`);
+         Logger.warn(`Warning: export condition is not a file; "${pExportPath}": ${pEntryPath}`);
          return;
       }
 
-      const filepath = path.resolve(procEntryPath);
+      const filepath = path.resolve(pEntryPath);
 
       if (exportMap.has(filepath)) { return; }
 
-      exportMap.set(filepath, procExportPath);
-      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+      exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
    };
 
    for (const exportPath in packageObj.exports)
@@ -354,8 +383,12 @@ function processExportsCondition(config, packageObj)
 
       if (isGlob(exportPath) || isGlob(entryPath))
       {
+         // Find all local files that match the entry path wildcard.
          const globEntryPaths = globSync(entryPath);
-         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
+         for (const globEntryPath of globEntryPaths)
+         {
+            processExport(path.toUnix(globEntryPath), exportPath, entryPath);
+         }
       }
       else
       {
@@ -380,27 +413,28 @@ function processExportsCondition(config, packageObj)
  *
  * @param {object}   packageObj - Package object.
  *
- * @returns {Map<string, string>} Resolved file paths for given export condition.
+ * @returns {Map<string, { entryPath: string, exportPath: string, globEntryPath: string }>} Resolved file paths for
+ *          given export condition.
  */
 function processExportsTypes(config, packageObj)
 {
    const exportMap = new Map();
    const exportLog = [];
 
-   const processExport = (procEntryPath, procExportPath) =>
+   const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
    {
-      if (!isDTSFile(procEntryPath))
+      if (!isDTSFile(pEntryPath))
       {
-         Logger.warn(`Warning: export condition is not a DTS file; "${procExportPath}": ${procEntryPath}`);
+         Logger.warn(`Warning: export condition is not a DTS file; "${pExportPath}": ${pEntryPath}`);
          return;
       }
 
-      const filepath = path.resolve(procEntryPath);
+      const filepath = path.resolve(pEntryPath);
 
       if (exportMap.has(filepath)) { false; }
 
-      exportMap.set(filepath, procExportPath);
-      exportLog.push(`"${procExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+      exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
    };
 
    for (const exportPath in packageObj.exports)
@@ -424,12 +458,16 @@ function processExportsTypes(config, packageObj)
 
       // Currently `resolve.exports` does not allow filtering out the `default` condition.
       // See: https://github.com/lukeed/resolve.exports/issues/30
-      if (!entryPath.endsWith('.d.ts') && !entryPath.endsWith('.d.mts') && !entryPath.endsWith('.d.cts')) { continue; }
+      if (!regexIsDTSFile.test(entryPath)) { continue; }
 
       if (isGlob(exportPath) || isGlob(entryPath))
       {
+         // Find all local files that match the entry path wildcard.
          const globEntryPaths = globSync(entryPath);
-         for (const globEntryPath of globEntryPaths) { processExport(globEntryPath, exportPath); }
+         for (const globEntryPath of globEntryPaths)
+         {
+            processExport(path.toUnix(globEntryPath), exportPath, entryPath);
+         }
       }
       else
       {
