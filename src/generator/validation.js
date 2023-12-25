@@ -86,28 +86,33 @@ export function validateConfig(config)
 
    if (config.path !== void 0)
    {
-      if (typeof config.path !== 'string')
+      if (typeof config.path !== 'string' && !isIterable(config.path))
       {
-         Logger.error(`Error: 'path' must be a string.`);
+         Logger.error(`Error: 'path' must be a string or iterable list of strings.`);
          return false;
       }
 
-      const unixPath = path.toUnix(config.path);
+      const paths = isIterable(config.path) ? config.path : [config.path];
 
-      const isPathDir = isDirectory(unixPath);
-      const isPathFile = isFile(unixPath);
-
-      if (!(isPathDir || isPathFile))
+      for (const nextPath of paths)
       {
-         Logger.error(`Error: 'path' is not a directory or file; ${unixPath}`);
-         return false;
-      }
+         const unixPath = path.toUnix(nextPath);
 
-      if (isPathFile &&
-       !(regexIsDTSFile.test(unixPath) || regexAllowedFiles.test(unixPath) || unixPath.endsWith('package.json')))
-      {
-         Logger.error(`Error: 'path' is not an allowed entry point or 'package.json' file; ${unixPath}`);
-         return false;
+         const isPathDir = isDirectory(unixPath);
+         const isPathFile = isFile(unixPath);
+
+         if (!(isPathDir || isPathFile))
+         {
+            Logger.error(`Error: 'path' is not a directory or file; ${unixPath}`);
+            return false;
+         }
+
+         if (isPathFile &&
+          !(regexIsDTSFile.test(unixPath) || regexAllowedFiles.test(unixPath) || unixPath.endsWith('package.json')))
+         {
+            Logger.error(`Error: 'path' is not an allowed entry point or 'package.json' file; ${unixPath}`);
+            return false;
+         }
       }
    }
    else

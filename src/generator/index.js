@@ -5,7 +5,9 @@ import {
    getRelativePath,
    isDirectory,
    isFile }                   from '@typhonjs-utils/file-util';
-import { isObject }           from '@typhonjs-utils/object';
+import {
+   isIterable,
+   isObject }                 from '@typhonjs-utils/object';
 import { getPackageWithPath } from "@typhonjs-utils/package-json";
 import { globSync }           from 'glob';
 import isGlob                 from 'is-glob';
@@ -24,7 +26,9 @@ import {
 import { Logger }             from '#util';
 
 /**
- * @param {GenerateConfig} config - Generate config.
+ * Generates docs from given configuration.
+ *
+ * @param {GenerateConfig | Iterable<GenerateConfig>} config - Generate config.
  *
  * @returns {Promise<void>}
  */
@@ -52,7 +56,8 @@ export async function generateDocs(config)
       return;
    }
 
-   console.log(`!! generateDocs - processedConfigOrError: `, processedConfigOrError);
+   // TODO REMOVE LOGGING
+   // console.log(`!! generateDocs - processedConfigOrError: `, processedConfigOrError);
    await generateTypedoc(processedConfigOrError);
 }
 
@@ -83,6 +88,7 @@ async function processConfig(origConfig)
 
    /** @type {Partial<PkgTypeDocConfig>} */
    const pkgConfig = {
+      dmtModuleNames: {},
       dmtNavStyle: config.dmtNavStyle,
       fromPackage: false,
       hasCompilerOptions: false,
@@ -120,84 +126,90 @@ function processPath(config, pkgConfig)
 {
    let filepaths = new Set();
 
-   const isPathDir = isDirectory(config.path);
+   const paths = isIterable(config.path) ? config.path : [config.path];
 
-   if (isPathDir || config.path.endsWith('package.json'))
+   for (const nextPath of paths)
    {
-      pkgConfig.fromPackage = true;
-
-      const dirname = isPathDir ? path.resolve(config.path) : path.dirname(path.resolve(config.path));
-
       const origCWD = process.cwd();
 
-      process.chdir(dirname);
+      const isPathDir = isDirectory(nextPath);
 
-      const { packageObj, filepath } = getPackageWithPath({ filepath: dirname, basepath: dirname });
-
-      if (!packageObj) { return `No 'package.json' found in: ${dirname}`; }
-
-      if (typeof config.packageName !== 'string') { config.packageName = packageObj.name; }
-
-      if (filepath)
+      if (isPathDir || nextPath.endsWith('package.json'))
       {
-         Logger.verbose(
-          `Processing: ${getRelativePath({ basepath: origCWD, filepath: path.toUnix(filepath) })}`);
-      }
+         pkgConfig.fromPackage = true;
 
-      const exportsFilepaths = processPathExports(config, pkgConfig, packageObj);
+         const dirname = isPathDir ? path.resolve(nextPath) : path.dirname(path.resolve(nextPath));
 
-      // If there are exports in `package.json` accept the file paths.
-      if (exportsFilepaths.size)
-      {
-         filepaths = exportsFilepaths;
-      }
-      else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
-      {
-         if (typeof packageObj?.types === 'string')
+         process.chdir(dirname);
+
+         const {packageObj, filepath} = getPackageWithPath({filepath: dirname, basepath: dirname});
+
+         if (!packageObj) { return `No 'package.json' found in: ${dirname}`; }
+
+         if (typeof config.packageName !== 'string') { config.packageName = packageObj.name; }
+
+         if (filepath)
          {
-            Logger.verbose(`Loading entry points from package.json 'types' property':`);
+            Logger.verbose(
+             `Processing: ${getRelativePath({basepath: origCWD, filepath: path.toUnix(filepath)})}`);
+         }
 
-            if (!isDTSFile(packageObj.types))
+         const exportsFilepaths = processPathExports(config, pkgConfig, packageObj);
+
+         // If there are exports in `package.json` accept the file paths.
+         if (exportsFilepaths.size)
+         {
+            exportsFilepaths.forEach((entry) => filepaths.add(entry));
+         }
+         else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
+         {
+            if (typeof packageObj?.types === 'string')
             {
-               Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
+               Logger.verbose(`Loading entry points from package.json 'types' property':`);
+
+               if (!isDTSFile(packageObj.types))
+               {
+                  Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
+               }
+               else
+               {
+                  const resolvedPath = path.resolve(packageObj.types);
+                  Logger.verbose(resolvedPath);
+                  filepaths.add(path.resolve(resolvedPath));
+               }
             }
-            else
+            else if (typeof packageObj?.typings === 'string')
             {
-               const resolvedPath = path.resolve(packageObj.types);
-               Logger.verbose(resolvedPath);
-               filepaths.add(path.resolve(resolvedPath));
+               Logger.verbose(`Loading entry points from package.json 'typings' property':`);
+
+               if (!isDTSFile(packageObj.typings))
+               {
+                  Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
+               }
+               else
+               {
+                  const resolvedPath = path.resolve(packageObj.typings);
+                  Logger.verbose(resolvedPath);
+                  filepaths.add(path.resolve(resolvedPath));
+               }
             }
          }
-         else if (typeof packageObj?.typings === 'string')
-         {
-            Logger.verbose(`Loading entry points from package.json 'typings' property':`);
-
-            if (!isDTSFile(packageObj.typings))
-            {
-               Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
-            }
-            else
-            {
-               const resolvedPath = path.resolve(packageObj.typings);
-               Logger.verbose(resolvedPath);
-               filepaths.add(path.resolve(resolvedPath));
-            }
-         }
       }
-   }
-   else if (isFile(config.path) && regexAllowedFiles.test(config.path))
-   {
-      const resolvedPath = path.resolve(config.path);
-      filepaths.add(resolvedPath);
+      else if (isFile(nextPath) && regexAllowedFiles.test(nextPath))
+      {
+         const resolvedPath = path.resolve(nextPath);
+         filepaths.add(resolvedPath);
 
-      Logger.verbose(`Loading entry point from file path specified:`);
-      Logger.verbose(resolvedPath);
+         Logger.verbose('Loading entry point from file path specified:');
+         Logger.verbose(resolvedPath);
+      }
+
+      process.chdir(origCWD);
    }
 
    if (filepaths.size === 0)
    {
-      Logger.warn(`No entry points found to load for documentation generation.`);
-      process.exit(1);
+      return 'No entry points found to load for documentation generation.';
    }
 
    pkgConfig.entryPoints = [...filepaths];
@@ -232,7 +244,13 @@ function processPathExports(config, pkgConfig, packageObj)
    const filepaths = [...exportsMap.keys()];
 
    // Process `pkgConfig.dmtModuleNames` TypeDoc module name substitutions for package.json exports.
-   if (filepaths.length) { pkgConfig.dmtModuleNames = processPathExportsMap(config, filepaths, exportsMap); }
+   if (filepaths.length)
+   {
+      pkgConfig.dmtModuleNames = {
+         ...pkgConfig.dmtModuleNames,
+         ...processPathExportsMap(config, filepaths, exportsMap)
+      };
+   }
 
    return new Set(filepaths);
 }
@@ -599,7 +617,8 @@ function processTypedoc(config)
  *
  * @property {string}   [packageName] Package name substitution; instead of `name` attribute of `package.json`.
  *
- * @property {string}   [path] Path to a file to use as a single entry point or specific 'package.json' to load.
+ * @property {string | Iterable<string>}  [path] Path to a source file, `package.json`, or directory with a
+ * `package.json` to use as entry points; you may provide an iterable list of paths.
  *
  * @property {string}   [tsconfigPath] Path to custom 'tsconfig.json' to load.
  *
