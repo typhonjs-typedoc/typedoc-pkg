@@ -1,4 +1,5 @@
 import { isFile }       from '@typhonjs-utils/file-util';
+import { isIterable }   from '@typhonjs-utils/object';
 
 import {
    Application,
@@ -110,10 +111,13 @@ async function createTypedocOptions(config)
       }
    }
 
-   // Add any API link plugins.
-   for (const linkPlugin of config.linkPlugins)
+   if (isIterable(config.linkPlugins))
    {
-      if (!optionsDoc.plugin.includes(linkPlugin)) { optionsDoc.plugin.push(linkPlugin); }
+      // Add any API link plugins.
+      for (const linkPlugin of config.linkPlugins)
+      {
+         if (!optionsDoc.plugin.includes(linkPlugin)) { optionsDoc.plugin.push(linkPlugin); }
+      }
    }
 
    return optionsDoc;
