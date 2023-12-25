@@ -151,10 +151,6 @@ function processConfigDefault(opts, logLevel)
 
    if (typeof opts.export === 'string') { config.exportCondition = opts.export; }
 
-   // packageName ----------------------------------------------------------------------------------------------------
-
-   if (typeof opts.name === 'string') { config.packageName = opts.name; }
-
    // output ---------------------------------------------------------------------------------------------------------
 
    if (typeof opts.output === 'string') { config.output = opts.output; }
