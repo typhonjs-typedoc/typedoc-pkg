@@ -7,7 +7,7 @@ import {
    isObject }              from '@typhonjs-utils/object';
 import path                from 'upath';
 
-import { generateDocs }    from '../generator/index.js';
+import { generateDocs }    from '../generator/generateDocs.js';
 
 import { Logger }          from '#util';
 
@@ -45,11 +45,12 @@ async function loadConfig(filepath)
 
    if (module.default === void 0) { exit(`The config does not have a default export: ${filepath}`); }
 
-   // Do some lite error checking on the provided config.
-   if (isObject(module.default))
+   if (!isObject(module.default) && !isIterable(module.default))
    {
+      exit(`The config file default export is not an object or iterable: ${filepath}`);
    }
-   else if (isIterable(module.default))
+
+   if (isIterable(module.default))
    {
       let i = 0;
       for (const entry of module.default)
@@ -61,10 +62,6 @@ async function loadConfig(filepath)
 
          i++;
       }
-   }
-   else
-   {
-      exit(`The config file default export is not an object or iterable: ${filepath}`);
    }
 
    return module.default;
@@ -111,14 +108,14 @@ async function processOptions(opts)
  *
  * @param {string}   logLevel - CLI parsed log level.
  *
- * @returns {GenerateConfig}
+ * @returns {import('../generator').GenerateConfig} GenerateConfig from CLI options.
  */
 function processConfigDefault(opts, logLevel)
 {
    /**
     * @type {import('../generator').GenerateConfig}
     */
-   let config = { logLevel };
+   const config = { logLevel };
 
    // path -----------------------------------------------------------------------------------------------------------
 
@@ -169,7 +166,16 @@ function processConfigDefault(opts, logLevel)
    return config;
 }
 
-async function processConfigFile(opts)
+/**
+ * Creates a GenerateConfig object from config file.
+ *
+ * @param {object}   opts - CLI options.
+ *
+ * @param {string}   logLevel - CLI parsed log level.
+ *
+ * @returns {Iterable<import('../generator').GenerateConfig>} GenerateConfig list.
+ */
+async function processConfigFile(opts, logLevel)
 {
    const dirname = path.dirname(process.cwd());
 
@@ -217,12 +223,12 @@ async function processConfigFile(opts)
    {
       for (const entry of config)
       {
-         if (typeof loglevel === 'string') { entry.logLevel = loglevel; }
+         if (typeof loglevel === 'string') { entry.logLevel = logLevel; }
       }
    }
    else if (isObject(config))
    {
-      if (typeof loglevel === 'string') { config.logLevel = opts.loglevel; }
+      if (typeof loglevel === 'string') { config.logLevel = logLevel; }
    }
 
    return config;
