@@ -52,7 +52,8 @@ export function validateCompilerOptions(compilerOptions)
 }
 
 /**
- * Validates all config object parameters.
+ * Validates all config object parameters. If no `path` is specified an attempt to load `package.json` from CWD
+ * is executed.
  *
  * @param {import('./').GenerateConfig} config - A generate config.
  *
