@@ -35,9 +35,10 @@ type GenerateConfig = {
      */
     packageName?: string;
     /**
-     * Path to a file to use as a single entry point or specific 'package.json' to load.
+     * Path to a source file, `package.json`, or directory with a
+     * `package.json` to use as entry points; you may provide an iterable list of paths.
      */
-    path?: string;
+    path?: string | Iterable<string>;
     /**
      * Path to custom 'tsconfig.json' to load.
      */
