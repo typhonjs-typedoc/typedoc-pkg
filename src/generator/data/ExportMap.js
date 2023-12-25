@@ -1,5 +1,4 @@
 import {
-   commonPath,
    getRelativePath,
    isFile }             from '@typhonjs-utils/file-util';
 import { globSync }     from 'glob';
@@ -10,7 +9,7 @@ import path             from 'upath';
 import {
    isDTSFile,
    regexAllowedFiles,
-   regexIsDTSFile }     from './validation.js';
+   regexIsDTSFile }     from '../validation.js';
 
 import { Logger }       from '#util';
 
@@ -19,72 +18,33 @@ import { Logger }       from '#util';
  */
 export class ExportMap extends Map
 {
-   /** @type {string} */
-   #cwd;
-
-   /** @type {string} */
-   #packageName;
-
    /**
-    * @param {string} packageName - Package name.
+    * Attempt to parse any `package.json` exports conditions.
     *
-    * @param {string} cwd - The working directory for this package.
+    * @param {import('./').PackageJson} packageJson - Processed Options.
+    *
+    * @returns {ExportMap} The resolved export map.
     */
-   constructor(packageName, cwd)
+   static create(packageJson)
    {
-      super();
-
-      this.#packageName = packageName;
-      this.#cwd = cwd;
+      return packageJson.exportCondition === 'types' ? processExportsTypes(packageJson) :
+       processExportsCondition(packageJson);
    }
-
-   /**
-    * @returns {string} The working directory for this package.
-    */
-   get cwd() { return this.#cwd; }
-
-   /**
-    * @returns {string} Package name.
-    */
-   get packageName() { return this.#packageName; }
 
    /**
     * Processes the `exportsMap` output and creates a `dmtModuleNames` remapping object for the DMT to remap TypeDoc
     * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
     * patterns.
     *
-    * @param {import('./').GenerateConfig}   config - Generate config.
+    * @param {import('../types').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
     *
-    * @param {import('./').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
+    * @param {string}   basepath - Base common path of all entry points.
     *
-    * @param {Set<string>}                   allFilepaths - All entry point file paths.
-    *
-    * @param {Iterable<ExportMap>}           exportMaps - All export maps to process.
+    * @param {import('./').PackageJson[]}  allPackages - All packages.
     */
-   static processExportMaps(config, pkgConfig, allFilepaths, exportMaps)
+   static processExportMaps(pkgConfig, basepath, allPackages)
    {
-      processExportMaps(config, pkgConfig, allFilepaths, exportMaps);
-   }
-
-   /**
-    * Attempt to parse any `package.json` exports conditions.
-    *
-    * @param {import('./').GenerateConfig} config - Processed Options.
-    *
-    * @param {object}         packageObj - Package object.
-    *
-    * @returns {ExportMap | undefined} The resolved export map.
-    */
-   static processPathExports(config, packageObj)
-   {
-      if (typeof packageObj?.exports !== 'object')
-      {
-         Logger.verbose(`No 'exports' conditions found in 'package.json'.`);
-         return;
-      }
-
-      return config.exportCondition === 'types' ? processExportsTypes(config, packageObj) :
-       processExportsCondition(config, packageObj);
+      processExportMaps(pkgConfig, basepath, allPackages);
    }
 }
 
@@ -93,33 +53,27 @@ export class ExportMap extends Map
  * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
  * patterns.
  *
- * @param {import('./').GenerateConfig}   config - Generate config.
+ * @param {import('../types').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
  *
- * @param {import('./').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
+ * @param {string}   basepath - Base common path of all entry points.
  *
- * @param {Set<string>}                   allFilepaths - All entry point file paths.
- *
- * @param {Iterable<ExportMap>}           exportMaps - All export maps to process.
+ * @param {import('./').PackageJson[]}  allPackages - All packages.
  */
-function processExportMaps(config, pkgConfig, allFilepaths, exportMaps)
+function processExportMaps(pkgConfig, basepath, allPackages)
 {
-   const dmtModuleNames = {};
-   const basepath = commonPath(...allFilepaths);
-
-   for (const exportMap of exportMaps)
+   for (const packageJson of allPackages)
    {
+      const exportMap = packageJson.exportMap;
+      if (!exportMap) { continue; }
+
       const origCWD = process.cwd();
-      process.chdir(exportMap.cwd);
+      process.chdir(packageJson.cwd);
 
-      const filepaths = [...exportMap.keys()];
-      const exportData = [...exportMap.values()];
+      const packageName = packageJson.name;
 
-      const packageName = config.packageName ?? exportMap.packageName;
-
-      for (let cntr = 0; cntr < filepaths.length; cntr++)
+      for (const [filepath, exportData] of exportMap.entries())
       {
-         const filepath = filepaths[cntr];
-         const { entryPath, exportPath, globEntryPath } = exportData[cntr];
+         const { entryPath, exportPath, globEntryPath } = exportData;
 
          if (isGlob(exportPath) && globEntryPath)
          {
@@ -144,18 +98,18 @@ function processExportMaps(config, pkgConfig, allFilepaths, exportMaps)
                const filename = path.basename(filepath).split('.')[0];
 
                // Join any resolved export path from the wildcard substitution.
-               dmtModuleNames[filename] = path.join(packageName, resolvedExportPath);
+               pkgConfig.dmtModuleNames[filename] = path.join(packageName, resolvedExportPath);
             }
             else
             {
-               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // Attempt the best mapping for how TypeDoc generates the associated module name. The relative path
                // including file name without extension is used except for file names that are `index` which is removed.
                const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
 
                if (!relativePath) { continue; }
 
                // Join any resolved export path from the wildcard substitution.
-               dmtModuleNames[relativePath] = path.join(packageName, resolvedExportPath);
+               pkgConfig.dmtModuleNames[relativePath] = path.join(packageName, resolvedExportPath);
             }
          }
          else
@@ -167,26 +121,24 @@ function processExportMaps(config, pkgConfig, allFilepaths, exportMaps)
                // Path is at the common root, so use filename without extension as package / module name.
                const filename = path.basename(filepath).split('.')[0];
 
-               dmtModuleNames[filename] = path.join(packageName, exportPath);
+               pkgConfig.dmtModuleNames[filename] = path.join(packageName, exportPath);
             }
             else
             {
-               // Attempt a best mapping attempt for how TypeDoc generates the associated module name. The relative path
+               // Attempt the best mapping for how TypeDoc generates the associated module name. The relative path
                // including file name without extension is used except for file names that are `index` which is removed.
                const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
 
                if (!relativePath) { continue; }
 
-               // Path is located in a sub-directory, so join it with package name.
-               dmtModuleNames[relativePath] = path.join(packageName, exportPath);
+               // Path is located in a subdirectory, so join it with package name.
+               pkgConfig.dmtModuleNames[relativePath] = path.join(packageName, exportPath);
             }
          }
       }
 
       process.chdir(origCWD);
    }
-
-   pkgConfig.dmtModuleNames = dmtModuleNames;
 }
 
 // -------------------------------------------------------------------------------------------------------------------
@@ -194,15 +146,13 @@ function processExportMaps(config, pkgConfig, allFilepaths, exportMaps)
 /**
  * Generically processes `package.json` exports conditions from user supplied condition.
  *
- * @param {import('./').GenerateConfig}  config - Processed Options.
- *
- * @param {object}   packageObj - Package object.
+ * @param {import('./').PackageJson} packageJson - Associated `package.json`.
  *
  * @returns {ExportMap} Resolved file paths for given export condition.
  */
-function processExportsCondition(config, packageObj)
+function processExportsCondition(packageJson)
 {
-   const exportMap = new ExportMap(packageObj.name, process.cwd());
+   const exportMap = new ExportMap();
    const exportLog = [];
 
    const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
@@ -218,16 +168,16 @@ function processExportsCondition(config, packageObj)
       if (exportMap.has(filepath)) { return; }
 
       exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
-      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.cwd, filepath })}`);
    };
 
-   for (const exportPath in packageObj.exports)
+   for (const exportPath in packageJson.exports)
    {
       let result;
 
       try
       {
-         result = resolvePkg.exports(packageObj, exportPath, { conditions: [config.exportCondition] });
+         result = resolvePkg.exports(packageJson.data, exportPath, { conditions: [packageJson.exportCondition] });
       }
       catch (err)
       {
@@ -263,7 +213,7 @@ function processExportsCondition(config, packageObj)
    // Log any entry points found.
    if (exportLog.length)
    {
-      Logger.verbose(`Loading entry points from 'package.json' export condition '${config.exportCondition}':`);
+      Logger.verbose(`Loading entry points from 'package.json' export condition '${packageJson.exportCondition}':`);
       for (const entry of exportLog) { Logger.verbose(entry); }
    }
 
@@ -273,15 +223,13 @@ function processExportsCondition(config, packageObj)
 /**
  * Specifically parse the `types` export condition with a few extra sanity checks.
  *
- * @param {import('./').GenerateConfig}  config - Processed Options.
- *
- * @param {object}   packageObj - Package object.
+ * @param {import('./').PackageJson} packageJson - Associated `package.json`.
  *
  * @returns {ExportMap} Resolved file paths for given export condition.
  */
-function processExportsTypes(config, packageObj)
+function processExportsTypes(packageJson)
 {
-   const exportMap = new ExportMap(packageObj.name, process.cwd());
+   const exportMap = new ExportMap();
    const exportLog = [];
 
    const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
@@ -294,19 +242,19 @@ function processExportsTypes(config, packageObj)
 
       const filepath = path.resolve(pEntryPath);
 
-      if (exportMap.has(filepath)) { false; }
+      if (exportMap.has(filepath)) { return; }
 
       exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
-      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: process.cwd(), filepath })}`);
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.cwd, filepath })}`);
    };
 
-   for (const exportPath in packageObj.exports)
+   for (const exportPath in packageJson.exports)
    {
       let result;
 
       try
       {
-         result = resolvePkg.exports(packageObj, exportPath, { conditions: ['types'] });
+         result = resolvePkg.exports(packageJson.data, exportPath, { conditions: ['types'] });
       }
       catch (err)
       {

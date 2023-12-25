@@ -1,6 +1,7 @@
 import fs                     from 'node:fs';
 
 import {
+   commonPath,
    getRelativePath,
    isDirectory,
    isFile }                   from '@typhonjs-utils/file-util';
@@ -10,12 +11,13 @@ import {
 import { getPackageWithPath } from "@typhonjs-utils/package-json";
 import path                   from 'upath';
 
-import { ExportMap }          from './ExportMap.js';
+import { ExportMap }          from './data/index.js';
+
+import { PackageJson }        from './data/index.js';
 
 import { generateTypedoc }    from './typedoc.js';
 
 import {
-   isDTSFile,
    regexAllowedFiles,
    regexIsDTSFile,
    validateCompilerOptions,
@@ -26,37 +28,40 @@ import { Logger }             from '#util';
 /**
  * Generates docs from given configuration.
  *
- * @param {GenerateConfig | Iterable<GenerateConfig>} config - Generate config.
+ * @param {GenerateConfig | Iterable<GenerateConfig>} configs - Generate config(s).
  *
  * @returns {Promise<void>}
  */
-export async function generateDocs(config)
+export async function generateDocs(configs)
 {
-   if (typeof config?.logLevel === 'string')
+   const allConfigs = isIterable(configs) ? configs : [configs];
+
+   for (const config of allConfigs)
    {
-      if (!Logger.isValidLevel(config.logLevel))
+      if (typeof config?.logLevel === 'string')
       {
-         Logger.error(
-          `Invalid options: log level '${config.logLevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
+         if (!Logger.isValidLevel(config.logLevel))
+         {
+            Logger.error(
+             `Invalid options: log level '${config.logLevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
+            return;
+         }
+
+         Logger.logLevel = config.logLevel;
+      }
+
+      const origCWD = process.cwd();
+      const processedConfigOrError = await processConfig(config);
+      process.chdir(origCWD);
+
+      if (typeof processedConfigOrError === 'string')
+      {
+         Logger.error(processedConfigOrError);
          return;
       }
 
-      Logger.logLevel = config.logLevel;
+      await generateTypedoc(processedConfigOrError);
    }
-
-   const origCWD = process.cwd();
-   const processedConfigOrError = await processConfig(config);
-   process.chdir(origCWD);
-
-   if (typeof processedConfigOrError === 'string')
-   {
-      Logger.error(processedConfigOrError);
-      return;
-   }
-
-   // TODO REMOVE LOGGING
-   // console.log(`!! generateDocs - processedConfigOrError: `, processedConfigOrError);
-   await generateTypedoc(processedConfigOrError);
 }
 
 /**
@@ -64,7 +69,7 @@ export async function generateDocs(config)
  *
  * @param {GenerateConfig} origConfig - The original GenerateConfig.
  *
- * @returns {Promise<PkgTypeDocConfig | string>} Processed config or error string.
+ * @returns {Promise<import('./types').PkgTypeDocConfig | string>} Processed config or error string.
  */
 async function processConfig(origConfig)
 {
@@ -84,7 +89,7 @@ async function processConfig(origConfig)
 
    if (!validateConfig(config)) { return `Aborting as 'config' failed validation.`; }
 
-   /** @type {Partial<PkgTypeDocConfig>} */
+   /** @type {Partial<import('./types').PkgTypeDocConfig>} */
    const pkgConfig = {
       dmtModuleNames: {},
       dmtNavStyle: config.dmtNavStyle,
@@ -92,7 +97,6 @@ async function processConfig(origConfig)
       hasCompilerOptions: false,
       linkPlugins: config.linkPlugins,
       output: config.output,
-      packageName: config.packageName,
       typedocOptions: config.typedocOptions
    };
 
@@ -116,15 +120,14 @@ async function processConfig(origConfig)
  *
  * @param {GenerateConfig}    config - CLI options.
  *
- * @param {PkgTypeDocConfig}  pkgConfig - Processed Options.
+ * @param {import('./types').PkgTypeDocConfig}  pkgConfig - Processed Options.
  *
  * @returns {string | undefined} Error string.
  */
 function processPath(config, pkgConfig)
 {
-   const filepaths = new Set();
-
-   const exportMaps = [];
+   const allEntryPoints = new Set();
+   const allPackages = [];
 
    const paths = isIterable(config.path) ? config.path : [config.path];
 
@@ -152,53 +155,16 @@ function processPath(config, pkgConfig)
              `Processing: ${getRelativePath({ basepath: origCWD, filepath: path.toUnix(filepath) })}`);
          }
 
-         const exportMap = ExportMap.processPathExports(config, packageObj);
-         if (!exportMap) { continue; }
+         const packageJson = new PackageJson(packageObj, filepath, config.exportCondition);
 
-         // If there are exports in `package.json` accept the file paths.
-         if (exportMap.size)
-         {
-            for (const entry of exportMap.keys()) { filepaths.add(entry); }
-            exportMaps.push(exportMap);
-         }
-         else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
-         {
-            if (typeof packageObj?.types === 'string')
-            {
-               Logger.verbose(`Loading entry points from package.json 'types' property':`);
+         for (const entryPoint of packageJson.entryPoints) { allEntryPoints.add(entryPoint); }
 
-               if (!isDTSFile(packageObj.types))
-               {
-                  Logger.warn(`'types' property in package.json is not a declaration file: ${packageObj.types}`);
-               }
-               else
-               {
-                  const resolvedPath = path.resolve(packageObj.types);
-                  Logger.verbose(resolvedPath);
-                  filepaths.add(path.resolve(resolvedPath));
-               }
-            }
-            else if (typeof packageObj?.typings === 'string')
-            {
-               Logger.verbose(`Loading entry points from package.json 'typings' property':`);
-
-               if (!isDTSFile(packageObj.typings))
-               {
-                  Logger.warn(`'typings' property in package.json is not a declaration file: ${packageObj.typings}`);
-               }
-               else
-               {
-                  const resolvedPath = path.resolve(packageObj.typings);
-                  Logger.verbose(resolvedPath);
-                  filepaths.add(path.resolve(resolvedPath));
-               }
-            }
-         }
+         allPackages.push(packageJson);
       }
       else if (isFile(nextPath) && regexAllowedFiles.test(nextPath))
       {
          const resolvedPath = path.resolve(nextPath);
-         filepaths.add(resolvedPath);
+         allEntryPoints.add(resolvedPath);
 
          Logger.verbose('Loading entry point from file path specified:');
          Logger.verbose(resolvedPath);
@@ -207,15 +173,16 @@ function processPath(config, pkgConfig)
       process.chdir(origCWD);
    }
 
-   if (filepaths.size === 0)
-   {
-      return 'No entry points found to load for documentation generation.';
-   }
+   // Quit now if there are no entry points.
+   if (allEntryPoints.size === 0) { return 'No entry points found to load for documentation generation.'; }
 
-   // Processes all ExportMaps adding `dmtModuleNames` and `dmtModuleReadme` entries to `pkgConfig`.
-   if (exportMaps.length) { ExportMap.processExportMaps(config, pkgConfig, filepaths, exportMaps); }
+   // Determine common base path for all entry points to create `dmtModuleNames` mapping.
+   const basepath = commonPath(...allEntryPoints);
 
-   pkgConfig.entryPoints = [...filepaths];
+   // Processes all ExportMaps adding `dmtModuleNames` entries to `pkgConfig`.
+   if (allPackages.length) { ExportMap.processExportMaps(pkgConfig, basepath, allPackages); }
+
+   pkgConfig.entryPoints = [...allEntryPoints];
 
    // Sets true if every entry point a Typescript declaration.
    pkgConfig.entryPointsDTS = pkgConfig.entryPoints.every((filepath) => regexIsDTSFile.test(filepath));
@@ -226,7 +193,7 @@ function processPath(config, pkgConfig)
  *
  * @param {GenerateConfig}    config - Processed config options.
  *
- * @param {PkgTypeDocConfig}  pkgConfig - PkgTypeDocConfig.
+ * @param {Partial<import('./types').PkgTypeDocConfig>}  pkgConfig - PkgTypeDocConfig.
  *
  * @returns {import('typescript').CompilerOptions | string} Processed Typescript compiler options or error string.
  */
@@ -333,8 +300,6 @@ function processTypedoc(config)
  *
  * @property {string}   [output='docs'] Provide a directory path for generated documentation.
  *
- * @property {string}   [packageName] Package name substitution; instead of `name` attribute of `package.json`.
- *
  * @property {string | Iterable<string>}  [path] Path to a source file, `package.json`, or directory with a
  * `package.json` to use as entry points; you may provide an iterable list of paths.
  *
@@ -343,38 +308,4 @@ function processTypedoc(config)
  * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set.
  *
  * @property {string}   [typedocPath] Path to custom `typedoc.json` to load.
- */
-
-/**
- * @typedef {object} PkgTypeDocConfig Internal TypeDoc configuration.
- *
- * @property {import('typescript').CompilerOptions} compilerOptions Typescript compiler options.
- *
- * @property {string} cwd Current Working Directory.
- *
- * @property {'compact' | 'flat'} [dmtNavStyle] Modify navigation module paths to be flat or compact singular paths.
- *
- * @property {Record<string, string>} dmtModuleNames Module name substitution.
- *
- * @property {string[]} entryPoints All files to include in doc generation.
- *
- * @property {boolean} entryPointsDTS True if all entry points are Typescript declarations.
- *
- * @property {boolean} fromPackage Indicates that the entry point files are from package exports.
- *
- * @property {boolean} hasCompilerOptions When true indicates that compiler options were loaded from CLI option.
- *
- * @property {Iterable<string>} linkPlugins All API link plugins to load.
- *
- * @property {string} output Documentation output directory.
- *
- * @property {string} packageName The name attribute from associated package.json or custom name from CLI option.
- *
- * @property {object} packageObj Any found package.json object.
- *
- * @property {string} packageFilepath File path of found package.json.
- *
- * @property {object} typedocJSON Options loaded from `typedocPath` option.
- *
- * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set.
  */
