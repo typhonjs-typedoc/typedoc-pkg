@@ -21,7 +21,7 @@ export const linkPluginMap = new Map([
 /**
  * Generate docs from typedoc-pkg configuration.
  *
- * @param {import('./').PkgTypeDocConfig} config - typedoc-pkg configuration.
+ * @param {import('./types').PkgTypeDocConfig} config - typedoc-pkg configuration.
  *
  * @returns {Promise<void>}
  */
@@ -68,7 +68,7 @@ export async function generateTypedoc(config)
 /**
  * Create the TypeDoc options.
  *
- * @param {import('./').PkgTypeDocConfig}  config - typedoc-pkg configuration.
+ * @param {import('./types').PkgTypeDocConfig}  config - typedoc-pkg configuration.
  *
  * @returns {Partial<import('typedoc').TypeDocOptions>} TypeDoc options.
  */
@@ -126,7 +126,7 @@ async function createTypedocOptions(config)
 /**
  * Set default options from typedoc-pkg configuration.
  *
- * @param {import('./').PkgTypeDocConfig}   config - typedoc-pkg configuration.
+ * @param {import('./types').PkgTypeDocConfig}   config - typedoc-pkg configuration.
  *
  * @param {import('typedoc').Options}   options - TypeDoc options.
  */
@@ -164,7 +164,7 @@ function setDefaultOptions(config, options)
 /**
  * Set DMT options from typedoc-pkg configuration.
  *
- * @param {import('./').PkgTypeDocConfig}   config - typedoc-pkg configuration.
+ * @param {import('./types').PkgTypeDocConfig}   config - typedoc-pkg configuration.
  *
  * @param {import('typedoc').Options}   options - TypeDoc options.
  */
