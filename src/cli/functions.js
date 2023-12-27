@@ -1,7 +1,7 @@
 import fs                  from 'node:fs';
 import { pathToFileURL }   from 'node:url';
 
-import { isFile }          from '@typhonjs-utils/file-util';
+import {isDirectory, isFile} from '@typhonjs-utils/file-util';
 import {
    isIterable,
    isObject }              from '@typhonjs-utils/object';
@@ -127,6 +127,16 @@ function processConfigDefault(opts, logLevel)
       }
 
       config.path = opts.path;
+   }
+
+   if (opts?.['mono-repo'])
+   {
+      if (!isDirectory(opts.path))
+      {
+         exit(`Invalid options: the 'path' specified must be a directory when mono-repo option is enabled.`);
+      }
+
+      config.monoRepo = true;
    }
 
    // dmtNavStyle ----------------------------------------------------------------------------------------------------

@@ -87,7 +87,7 @@ async function processConfig(origConfig)
       output: 'docs'
    }, origConfig);
 
-   if (!validateConfig(config)) { return `Aborting as 'config' failed validation.`; }
+   if (!(await validateConfig(config))) { return `Aborting as 'config' failed validation.`; }
 
    /** @type {Partial<import('./types').PkgTypeDocConfig>} */
    const pkgConfig = {
@@ -300,6 +300,9 @@ function processTypedoc(config)
  * @property {'all' | 'verbose' | 'info' | 'warn' | 'error'} [logLevel='info'] Defines the logging level.
  *
  * @property {string}   [output='docs'] Provide a directory path for generated documentation.
+ *
+ * @property {boolean}  [monoRepo=false] When true a single directory path must be specified that will be scanned for
+ * all NPM packages.
  *
  * @property {string | Iterable<string>}  [path] Path to a source file, `package.json`, or directory with a
  * `package.json` to use as entry points; you may provide an iterable list of paths.

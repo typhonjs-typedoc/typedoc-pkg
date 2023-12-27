@@ -1,4 +1,5 @@
 import {
+   getFileList,
    isDirectory,
    isFile }                   from '@typhonjs-utils/file-util';
 import {
@@ -11,6 +12,7 @@ import { linkPluginMap }      from './typedoc.js';
 import ts                     from 'typescript';
 
 import { Logger }             from '#util';
+import upath from "upath";
 
 // Only allow standard JS / TS files.
 export const regexAllowedFiles = /\.(js|mjs|ts|mts)$/;
@@ -57,9 +59,9 @@ export function validateCompilerOptions(compilerOptions)
  *
  * @param {import('./').GenerateConfig} config - A generate config.
  *
- * @returns {boolean} Validation state.
+ * @returns {Promise<boolean>} Validation state.
  */
-export function validateConfig(config)
+export async function validateConfig(config)
 {
    if (config.dmtNavStyle !== void 0 && config.dmtNavStyle !== 'compact' && config.dmtNavStyle !== 'flat')
    {
@@ -83,6 +85,45 @@ export function validateConfig(config)
    {
       Logger.error(`Error: 'packageName' must be a string.`);
       return false;
+   }
+
+   if (config.monoRepo !== void 0)
+   {
+      if (typeof config.monoRepo !== 'boolean')
+      {
+         Logger.error(`Error: 'monoRepo' must be a boolean.`);
+         return false;
+      }
+
+      if (config.monoRepo && !isDirectory(config.path))
+      {
+         Logger.error(`Error: 'monoRepo' is enabled and 'path' is not a directory.`);
+         return false;
+      }
+
+      const resolvePath = path.resolve(config.path);
+      Logger.verbose('Searching for all NPM packages under directory:');
+      Logger.verbose(resolvePath);
+
+      // Get all `package.json` files in the given folder and sub-folders. Any found files will be added to `path`.
+      const packageFilepaths = await getFileList({
+         dir: resolvePath,
+         includeFile: /^package\.json$/,
+         resolve: true,
+         walk: true
+      });
+
+      if (!packageFilepaths.length)
+      {
+         Logger.error('No NPM packages found for mono-repo base directory:');
+         Logger.error(resolvePath);
+         return false;
+      }
+
+      Logger.verbose('Found and expanding path for the following packages:');
+      for (const packagePath of packageFilepaths) { Logger.verbose(packagePath); }
+
+      config.path = packageFilepaths;
    }
 
    if (config.path !== void 0)

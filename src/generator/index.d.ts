@@ -30,6 +30,11 @@ type GenerateConfig = {
      */
     output?: string;
     /**
+     * When true a single directory path must be specified that will be scanned for
+     * all NPM packages.
+     */
+    monoRepo?: boolean;
+    /**
      * Path to a source file, `package.json`, or directory with a
      * `package.json` to use as entry points; you may provide an iterable list of paths.
      */
