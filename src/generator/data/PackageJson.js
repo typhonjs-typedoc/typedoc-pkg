@@ -8,8 +8,6 @@ import { Logger }    from '#util';
 
 export class PackageJson
 {
-   #cwd;
-
    #dirpath;
 
    /** @type {Set<string>} */
@@ -30,7 +28,6 @@ export class PackageJson
       this.#packageFilepath = filepath;
       this.#exportCondition = exportCondition;
 
-      this.#cwd = process.cwd();
       this.#dirpath = path.dirname(filepath);
 
       if (typeof packageObj.exports !== 'object')
@@ -43,11 +40,6 @@ export class PackageJson
       }
 
       this.#process();
-   }
-
-   get cwd()
-   {
-      return this.#cwd;
    }
 
    get data()

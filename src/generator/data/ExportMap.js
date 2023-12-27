@@ -67,7 +67,7 @@ function processExportMaps(pkgConfig, basepath, allPackages)
       if (!exportMap) { continue; }
 
       const origCWD = process.cwd();
-      process.chdir(packageJson.cwd);
+      process.chdir(packageJson.dirpath);
 
       const packageName = packageJson.name;
 
@@ -168,7 +168,7 @@ function processExportsCondition(packageJson)
       if (exportMap.has(filepath)) { return; }
 
       exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
-      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.cwd, filepath })}`);
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.dirpath, filepath })}`);
    };
 
    for (const exportPath in packageJson.exports)
@@ -245,7 +245,7 @@ function processExportsTypes(packageJson)
       if (exportMap.has(filepath)) { return; }
 
       exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
-      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.cwd, filepath })}`);
+      exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.dirpath, filepath })}`);
    };
 
    for (const exportPath in packageJson.exports)
