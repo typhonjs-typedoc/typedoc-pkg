@@ -98,12 +98,13 @@ async function createTypedocOptions(config)
       out: config.output,
    };
 
-   const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, optionsRequired);
+   const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, config.typedocOptions ?? {},
+    optionsRequired);
 
    if (!Array.isArray(optionsDoc.plugin)) { optionsDoc.plugin = []; }
 
    // Add DMT theme plugin.
-   if (theme === 'default-modern')
+   if (optionsDoc.theme === 'default-modern')
    {
       if (!optionsDoc.plugin.includes('@typhonjs-typedoc/typedoc-theme-dmt'))
       {

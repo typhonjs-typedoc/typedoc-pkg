@@ -65,5 +65,5 @@ export type PkgTypeDocConfig = {
    /**
     * Direct TypeDoc options to set.
     */
-   typedocObject?: Partial<TypeDocOptions>;
+   typedocOptions?: Partial<TypeDocOptions>;
 };
