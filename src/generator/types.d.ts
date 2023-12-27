@@ -28,6 +28,11 @@ export type PkgTypeDocConfig = {
    dmtModuleNames: Record<string, string>;
 
    /**
+    * Module name to associated `README.md` from package exports parsing.
+    */
+   dmtModuleReadme: Record<string, string>;
+
+   /**
     * All entry point files to include in doc generation.
     */
    entryPoints: string[];

@@ -70,10 +70,13 @@ function processExportMaps(pkgConfig, basepath, allPackages)
       process.chdir(packageJson.dirpath);
 
       const packageName = packageJson.name;
+      const packageReadmePath = path.resolve(`${packageJson.dirpath}/README.md`);
 
       for (const [filepath, exportData] of exportMap.entries())
       {
          const { entryPath, exportPath, globEntryPath } = exportData;
+
+         let resolvedPackageName;
 
          if (isGlob(exportPath) && globEntryPath)
          {
@@ -97,8 +100,10 @@ function processExportMaps(pkgConfig, basepath, allPackages)
                // Path is at the common root, so use filename without extension as package / module name.
                const filename = path.basename(filepath).split('.')[0];
 
+               resolvedPackageName = path.join(packageName, resolvedExportPath);
+
                // Join any resolved export path from the wildcard substitution.
-               pkgConfig.dmtModuleNames[filename] = path.join(packageName, resolvedExportPath);
+               pkgConfig.dmtModuleNames[filename] = resolvedPackageName;
             }
             else
             {
@@ -108,8 +113,10 @@ function processExportMaps(pkgConfig, basepath, allPackages)
 
                if (!relativePath) { continue; }
 
+               resolvedPackageName = path.join(packageName, resolvedExportPath);
+
                // Join any resolved export path from the wildcard substitution.
-               pkgConfig.dmtModuleNames[relativePath] = path.join(packageName, resolvedExportPath);
+               pkgConfig.dmtModuleNames[relativePath] = resolvedPackageName;
             }
          }
          else
@@ -121,7 +128,9 @@ function processExportMaps(pkgConfig, basepath, allPackages)
                // Path is at the common root, so use filename without extension as package / module name.
                const filename = path.basename(filepath).split('.')[0];
 
-               pkgConfig.dmtModuleNames[filename] = path.join(packageName, exportPath);
+               resolvedPackageName = path.join(packageName, exportPath);
+
+               pkgConfig.dmtModuleNames[filename] = resolvedPackageName;
             }
             else
             {
@@ -131,8 +140,33 @@ function processExportMaps(pkgConfig, basepath, allPackages)
 
                if (!relativePath) { continue; }
 
+               resolvedPackageName = path.join(packageName, exportPath);
+
                // Path is located in a subdirectory, so join it with package name.
-               pkgConfig.dmtModuleNames[relativePath] = path.join(packageName, exportPath);
+               pkgConfig.dmtModuleNames[relativePath] = resolvedPackageName;
+            }
+         }
+
+         // Process dmtModuleReadme ----------------------------------------------------------------------------------
+
+         // Default export so look for README.md in package root.
+         if (resolvedPackageName === packageJson.name)
+         {
+            // Only include it when there are multiple packages are being processed otherwise the main index for a
+            // single package has the package README.
+            if (allPackages.length > 1 && isFile(packageReadmePath))
+            {
+               pkgConfig.dmtModuleReadme[resolvedPackageName] = packageReadmePath;
+            }
+         }
+         else // Sub-path export so look for README in directory of the export path.
+         {
+            const readmePath = path.resolve(`${path.dirname(entryPath)}/README.md`);
+
+            // Verify any sub-path exports located in the root package directory don't pick up the main `README.md`.
+            if (readmePath !== packageReadmePath)
+            {
+               if (isFile(readmePath)) { pkgConfig.dmtModuleReadme[resolvedPackageName] = readmePath; }
             }
          }
       }

@@ -182,6 +182,11 @@ function setDMTOptions(config, options)
       options.setValue('dmtModuleNames', config.dmtModuleNames);
    }
 
+   if (!options.isSet('dmtModuleReadme') && config.dmtModuleReadme)
+   {
+      options.setValue('dmtModuleReadme', config.dmtModuleReadme);
+   }
+
    if (config.dmtNavStyle === 'compact') { options.setValue('dmtNavModuleCompact', true); }
    if (config.dmtNavStyle === 'flat') { options.setValue('dmtNavModuleDepth', 0); }
 

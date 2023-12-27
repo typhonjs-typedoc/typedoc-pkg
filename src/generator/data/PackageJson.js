@@ -68,6 +68,9 @@ export class PackageJson
       return this.#exportCondition;
    }
 
+   /**
+    * @returns {ExportMap} Any processed `exports` map.
+    */
    get exportMap()
    {
       return this.#exportMap;

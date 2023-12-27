@@ -92,6 +92,7 @@ async function processConfig(origConfig)
    /** @type {Partial<import('./types').PkgTypeDocConfig>} */
    const pkgConfig = {
       dmtModuleNames: {},
+      dmtModuleReadme: {},
       dmtNavStyle: config.dmtNavStyle,
       fromPackage: false,
       hasCompilerOptions: false,
