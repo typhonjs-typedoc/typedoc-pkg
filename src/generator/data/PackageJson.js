@@ -91,6 +91,8 @@ export class PackageJson
       return this.#packageObj.name;
    }
 
+   // Internal implementation ----------------------------------------------------------------------------------------
+
    #process()
    {
       // If there are exports in `package.json` accept the file paths.
@@ -98,11 +100,13 @@ export class PackageJson
       {
          for (const entry of this.#exportMap.keys()) { this.#entryPoints.add(entry); }
       }
-      else // Otherwise attempt to find `types` or `typings` properties in `package.json`.
+      // Otherwise attempt to find `types` or `typings` properties in `package.json` when `exportCondition` is
+      // the default; `types`.
+      else if (this.exportCondition === 'types')
       {
          if (typeof this.data.types === 'string')
          {
-            Logger.verbose(`Loading entry points from package.json 'types' property':`);
+            Logger.verbose(`Loading entry point from package.json 'types' property':`);
 
             if (!isDTSFile(this.data.types))
             {
@@ -117,7 +121,7 @@ export class PackageJson
          }
          else if (typeof this.data.typings === 'string')
          {
-            Logger.verbose(`Loading entry points from package.json 'typings' property':`);
+            Logger.verbose(`Loading entry point from package.json 'typings' property':`);
 
             if (!isDTSFile(this.data.typings))
             {

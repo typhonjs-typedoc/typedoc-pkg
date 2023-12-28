@@ -11,9 +11,10 @@ import {
 import { getPackageWithPath } from "@typhonjs-utils/package-json";
 import path                   from 'upath';
 
-import { ExportMap }          from './data/index.js';
-
-import { PackageJson }        from './data/index.js';
+import {
+   ExportMap,
+   PackageJson,
+   PkgTypeDocMapping }        from './data/index.js';
 
 import { generateTypedoc }    from './typedoc.js';
 
@@ -181,7 +182,12 @@ function processPath(config, pkgConfig)
    const basepath = commonPath(...allEntryPoints);
 
    // Processes all ExportMaps adding `dmtModuleNames` entries to `pkgConfig`.
-   if (allPackages.length) { ExportMap.processExportMaps(pkgConfig, basepath, allPackages); }
+   if (allPackages.length)
+   {
+      PkgTypeDocMapping.initialize(pkgConfig, basepath);
+
+      ExportMap.processExportMaps(allPackages);
+   }
 
    pkgConfig.entryPoints = [...allEntryPoints];
 

@@ -1,17 +1,19 @@
 import {
    getRelativePath,
-   isFile }             from '@typhonjs-utils/file-util';
-import { globSync }     from 'glob';
-import isGlob           from 'is-glob';
-import * as resolvePkg  from "resolve.exports";
-import path             from 'upath';
+   isFile }                   from '@typhonjs-utils/file-util';
+import { globSync }           from 'glob';
+import isGlob                 from 'is-glob';
+import * as resolvePkg        from "resolve.exports";
+import path                   from 'upath';
+
+import { PkgTypeDocMapping }  from './PkgTypeDocMapping.js';
 
 import {
    isDTSFile,
    regexAllowedFiles,
-   regexIsDTSFile }     from '../validation.js';
+   regexIsDTSFile }           from '../validation.js';
 
-import { Logger }       from '#util';
+import { Logger }             from '#util';
 
 /**
  * @augments {Map<string, { entryPath: string, exportPath: string, globEntryPath: string }>}
@@ -36,15 +38,11 @@ export class ExportMap extends Map
     * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
     * patterns.
     *
-    * @param {import('../types').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
-    *
-    * @param {string}   basepath - Base common path of all entry points.
-    *
     * @param {import('./').PackageJson[]}  allPackages - All packages.
     */
-   static processExportMaps(pkgConfig, basepath, allPackages)
+   static processExportMaps(allPackages)
    {
-      processExportMaps(pkgConfig, basepath, allPackages);
+      processExportMaps(allPackages);
    }
 }
 
@@ -53,13 +51,9 @@ export class ExportMap extends Map
  * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
  * patterns.
  *
- * @param {import('../types').PkgTypeDocConfig} pkgConfig - PkgTypeDocConfig.
- *
- * @param {string}   basepath - Base common path of all entry points.
- *
  * @param {import('./').PackageJson[]}  allPackages - All packages.
  */
-function processExportMaps(pkgConfig, basepath, allPackages)
+function processExportMaps(allPackages)
 {
    for (const packageJson of allPackages)
    {
@@ -80,8 +74,6 @@ function processExportMaps(pkgConfig, basepath, allPackages)
 
          if (isGlob(exportPath) && globEntryPath)
          {
-            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
-
             // Remove any leading relative path / replace first wildcard occurrence with a capture group.
             const regexPattern = globEntryPath.replace(/^(\.+\/)+/g, '').replace(/\*/, '(.*)');
 
@@ -94,81 +86,33 @@ function processExportMaps(pkgConfig, basepath, allPackages)
             }
 
             const resolvedExportPath = exportPath.replaceAll('*', match[1]);
-
-            if (relativeDir === '.')
-            {
-               // Path is at the common root, so use filename without extension as package / module name.
-               const filename = path.basename(filepath).split('.')[0];
-
-               resolvedPackageName = path.join(packageName, resolvedExportPath);
-
-               // Join any resolved export path from the wildcard substitution.
-               pkgConfig.dmtModuleNames[filename] = resolvedPackageName;
-            }
-            else
-            {
-               // Attempt the best mapping for how TypeDoc generates the associated module name. The relative path
-               // including file name without extension is used except for file names that are `index` which is removed.
-               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
-
-               if (!relativePath) { continue; }
-
-               resolvedPackageName = path.join(packageName, resolvedExportPath);
-
-               // Join any resolved export path from the wildcard substitution.
-               pkgConfig.dmtModuleNames[relativePath] = resolvedPackageName;
-            }
+            resolvedPackageName = path.join(packageName, resolvedExportPath);
          }
          else
          {
-            const relativeDir = path.dirname(getRelativePath({ basepath, filepath }));
-
-            if (relativeDir === '.')
-            {
-               // Path is at the common root, so use filename without extension as package / module name.
-               const filename = path.basename(filepath).split('.')[0];
-
-               resolvedPackageName = path.join(packageName, exportPath);
-
-               pkgConfig.dmtModuleNames[filename] = resolvedPackageName;
-            }
-            else
-            {
-               // Attempt the best mapping for how TypeDoc generates the associated module name. The relative path
-               // including file name without extension is used except for file names that are `index` which is removed.
-               const relativePath = getRelativePath({ basepath, filepath })?.split('.')?.[0]?.replace(/\/index$/, '');
-
-               if (!relativePath) { continue; }
-
-               resolvedPackageName = path.join(packageName, exportPath);
-
-               // Path is located in a subdirectory, so join it with package name.
-               pkgConfig.dmtModuleNames[relativePath] = resolvedPackageName;
-            }
+            resolvedPackageName = path.join(packageName, exportPath);
          }
 
          // Process dmtModuleReadme ----------------------------------------------------------------------------------
+
+         let readmePath;
 
          // Default export so look for README.md in package root.
          if (resolvedPackageName === packageJson.name)
          {
             // Only include it when there are multiple packages are being processed otherwise the main index for a
             // single package has the package README.
-            if (allPackages.length > 1 && isFile(packageReadmePath))
-            {
-               pkgConfig.dmtModuleReadme[resolvedPackageName] = packageReadmePath;
-            }
+            if (allPackages.length > 1 && isFile(packageReadmePath)) { readmePath = packageReadmePath; }
          }
          else // Sub-path export so look for README in directory of the export path.
          {
-            const readmePath = path.resolve(`${path.dirname(entryPath)}/README.md`);
+            const subReadmePath = path.resolve(`${path.dirname(entryPath)}/README.md`);
 
             // Verify any sub-path exports located in the root package directory don't pick up the main `README.md`.
-            if (readmePath !== packageReadmePath)
-            {
-               if (isFile(readmePath)) { pkgConfig.dmtModuleReadme[resolvedPackageName] = readmePath; }
-            }
+            if (subReadmePath !== packageReadmePath && isFile(subReadmePath)) { readmePath = subReadmePath; }
          }
+
+         PkgTypeDocMapping.addMapping(filepath, resolvedPackageName, readmePath);
       }
 
       process.chdir(origCWD);
