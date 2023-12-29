@@ -4,6 +4,11 @@ import type { CompilerOptions }  from 'typescript';
 // Any types defined in `types.d.ts` file are not included in public package types.
 
 /**
+ * Defines the data for `package.json` export conditions.
+ */
+export type ExportMap = Map<string, { entryPath: string, exportPath: string, globEntryPath: string }>;
+
+/**
  * Internal TypeDoc configuration.
  */
 export type PkgTypeDocConfig = {
