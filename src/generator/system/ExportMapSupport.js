@@ -31,7 +31,7 @@ export class ExportMapSupport
    }
 
    /**
-    * Processes the `exportsMap` output and creates a `dmtModuleNames` remapping object for the DMT to remap TypeDoc
+    * Processes the `ExportMap` output and creates a `dmtModuleNames` remapping object for the DMT to remap TypeDoc
     * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
     * patterns.
     *
@@ -43,6 +43,9 @@ export class ExportMapSupport
    static processMapping(packageJson, multiplePackages = false)
    {
       const exportMap = packageJson.exportMap;
+
+      // Sanity case to exit early.
+      if (!exportMap || !exportMap.size) { return; }
 
       const origCWD = process.cwd();
       process.chdir(packageJson.dirpath);
@@ -101,79 +104,6 @@ export class ExportMapSupport
 
       process.chdir(origCWD);
    }
-   //
-   // /**
-   //  * Processes the `exportsMap` output and creates a `dmtModuleNames` remapping object for the DMT to remap TypeDoc
-   //  * module names to match the package.json export based on the parsed condition. Includes support for sub-path export
-   //  * patterns.
-   //  *
-   //  * @param {import('../data/PackageJson').PackageJson[]}  allPackages - All packages.
-   //  */
-   // static processExportMaps(allPackages)
-   // {
-   //    for (const packageJson of allPackages)
-   //    {
-   //       const exportMap = packageJson.exportMap;
-   //       if (!exportMap) { continue; }
-   //
-   //       const origCWD = process.cwd();
-   //       process.chdir(packageJson.dirpath);
-   //
-   //       const packageName = packageJson.name;
-   //       const packageReadmePath = path.resolve(`${packageJson.dirpath}/README.md`);
-   //
-   //       for (const [filepath, exportData] of exportMap.entries())
-   //       {
-   //          const { entryPath, exportPath, globEntryPath } = exportData;
-   //
-   //          let resolvedPackageName;
-   //
-   //          if (isGlob(exportPath) && globEntryPath)
-   //          {
-   //             // Remove any leading relative path / replace first wildcard occurrence with a capture group.
-   //             const regexPattern = globEntryPath.replace(/^(\.+\/)+/g, '').replace(/\*/, '(.*)');
-   //
-   //             // Match / Capture / Replace wildcard.
-   //             const match = entryPath.match(new RegExp(`${regexPattern}`));
-   //             if (!match)
-   //             {
-   //                Logger.verbose(`Could not resolve wildcard export for: "${exportPath}: "${globEntryPath}"`);
-   //                continue;
-   //             }
-   //
-   //             const resolvedExportPath = exportPath.replaceAll('*', match[1]);
-   //             resolvedPackageName = path.join(packageName, resolvedExportPath);
-   //          }
-   //          else
-   //          {
-   //             resolvedPackageName = path.join(packageName, exportPath);
-   //          }
-   //
-   //          // Process dmtModuleReadme ----------------------------------------------------------------------------------
-   //
-   //          let readmePath;
-   //
-   //          // Default export so look for README.md in package root.
-   //          if (resolvedPackageName === packageJson.name)
-   //          {
-   //             // Only include it when there are multiple packages are being processed otherwise the main index for a
-   //             // single package has the package README.
-   //             if (allPackages.length > 1 && isFile(packageReadmePath)) { readmePath = packageReadmePath; }
-   //          }
-   //          else // Sub-path export so look for README in directory of the export path.
-   //          {
-   //             const subReadmePath = path.resolve(`${path.dirname(entryPath)}/README.md`);
-   //
-   //             // Verify any sub-path exports located in the root package directory don't pick up the main `README.md`.
-   //             if (subReadmePath !== packageReadmePath && isFile(subReadmePath)) { readmePath = subReadmePath; }
-   //          }
-   //
-   //          PkgTypeDocMapping.addMapping(filepath, resolvedPackageName, readmePath);
-   //       }
-   //
-   //       process.chdir(origCWD);
-   //    }
-   // }
 
    // Internal implementation ----------------------------------------------------------------------------------------
 
