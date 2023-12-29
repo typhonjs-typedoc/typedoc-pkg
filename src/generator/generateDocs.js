@@ -11,13 +11,9 @@ import {
 import { getPackageWithPath } from "@typhonjs-utils/package-json";
 import path                   from 'upath';
 
-import {
-   ExportMap,
-   PackageJson,
-   PkgTypeDocMapping }        from './data/index.js';
-
+import { PackageJson }        from './data/PackageJson.js';
+import { PkgTypeDocMapping }  from './system/index.js';
 import { generateTypedoc }    from './typedoc.js';
-
 import {
    regexAllowedFiles,
    regexIsDTSFile,
@@ -181,12 +177,14 @@ function processPath(config, pkgConfig)
    // Determine common base path for all entry points to create `dmtModuleNames` mapping.
    const basepath = commonPath(...allEntryPoints);
 
-   // Processes all ExportMaps adding `dmtModuleNames` entries to `pkgConfig`.
+   // Processes all packages mappings for `dmtModuleNames` / `dmtModuleReadme` in `pkgConfig`.
    if (allPackages.length)
    {
       PkgTypeDocMapping.initialize(pkgConfig, basepath);
 
-      ExportMap.processExportMaps(allPackages);
+      const multiplePackages = allPackages.length > 1;
+
+      for (const packageJson of allPackages) { packageJson.processMapping(multiplePackages); }
    }
 
    pkgConfig.entryPoints = [...allEntryPoints];

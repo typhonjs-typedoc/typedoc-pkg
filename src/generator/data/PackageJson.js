@@ -1,10 +1,10 @@
-import path          from 'upath';
+import path                   from 'upath';
 
-import { ExportMap } from './ExportMap.js';
+import { ExportMapSupport }   from '../system/index.js';
 
-import { isDTSFile } from '../validation.js';
+import { isDTSFile }          from '../validation.js';
 
-import { Logger }    from '#util';
+import { Logger }             from '#util';
 
 export class PackageJson
 {
@@ -15,7 +15,7 @@ export class PackageJson
 
    #exportCondition;
 
-   /** @type {ExportMap} */
+   /** @type {import('../types').ExportMap} */
    #exportMap;
 
    #packageFilepath;
@@ -36,7 +36,7 @@ export class PackageJson
       }
       else
       {
-         this.#exportMap = ExportMap.create(this);
+         this.#exportMap = ExportMapSupport.create(this);
       }
 
       this.#process();
@@ -69,7 +69,7 @@ export class PackageJson
    }
 
    /**
-    * @returns {ExportMap} Any processed `exports` map.
+    * @returns {import('../types').ExportMap} Any processed `exports` map.
     */
    get exportMap()
    {
@@ -81,14 +81,17 @@ export class PackageJson
       return this.#packageObj.exports;
    }
 
-   get filepath()
-   {
-      return this.#packageFilepath;
-   }
-
    get name()
    {
       return this.#packageObj.name;
+   }
+
+   processMapping(multiplePackages = false)
+   {
+      if (this.#exportMap.size)
+      {
+         ExportMapSupport.processMapping(this, multiplePackages);
+      }
    }
 
    // Internal implementation ----------------------------------------------------------------------------------------
