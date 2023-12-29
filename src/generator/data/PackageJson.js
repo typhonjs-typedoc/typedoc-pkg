@@ -1,7 +1,9 @@
+import { isFile }             from '@typhonjs-utils/file-util';
 import path                   from 'upath';
 
-import { ExportMapSupport }   from '../system/index.js';
-
+import {
+   ExportMapSupport,
+   PkgTypeDocMapping }        from '../system/index.js';
 import { isDTSFile }          from '../validation.js';
 
 import { Logger }             from '#util';
@@ -86,11 +88,23 @@ export class PackageJson
       return this.#packageObj.name;
    }
 
+   /**
+    * @param {boolean}  multiplePackages - When true indicates that multiple packages are being processed. This is used
+    *        to include any package README mapping for `dmtModuleReadme` for the main package export.
+    */
    processMapping(multiplePackages = false)
    {
-      if (this.#exportMap.size)
+      if (this.#exportMap?.size)
       {
          ExportMapSupport.processMapping(this, multiplePackages);
+      }
+      // Support the case when `types` / `typings` has been processed instead of export maps.
+      else if (this.exportCondition === 'types' && this.#entryPoints.size === 1)
+      {
+         const filepaths = Array.from(this.entryPoints.keys());
+
+         const packageReadmePath = multiplePackages ? path.resolve(`${this.dirpath}/README.md`) : void 0;
+         PkgTypeDocMapping.addMapping(filepaths[0], this.name, isFile(packageReadmePath) ? packageReadmePath : void 0);
       }
    }
 
