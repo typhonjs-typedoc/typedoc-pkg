@@ -89,16 +89,7 @@ async function processOptions(opts)
       logLevel = opts.loglevel;
    }
 
-   if (opts.config)
-   {
-      // return processConfigFile(opts, logLevel);
-      return processConfigFile(opts, logLevel);
-      // console.log(`!!!! Configs: `, configs)
-   }
-   else
-   {
-      return processConfigDefault(opts, logLevel);
-   }
+   return opts.config ? processConfigFile(opts, logLevel) : processConfigDefault(opts, logLevel);
 }
 
 /**
@@ -143,7 +134,7 @@ function processConfigDefault(opts, logLevel)
 
    if (opts['dmt-nav-compact'] && opts?.['dmt-nav-flat'])
    {
-      exit(`'--dmt-nav-compact' and '--dmt-nav-flat is enabled; choose only one.`);
+      exit(`'--dmt-nav-compact' and '--dmt-nav-flat' is enabled; choose only one.`);
    }
 
    if (typeof opts['dmt-nav-compact'] === 'boolean' && opts['dmt-nav-compact']) { config.dmtNavStyle = 'compact'; }

@@ -187,8 +187,13 @@ function setDMTOptions(config, options)
       options.setValue('dmtModuleReadme', config.dmtModuleReadme);
    }
 
-   if (config.dmtNavStyle === 'compact') { options.setValue('dmtNavModuleCompact', true); }
-   if (config.dmtNavStyle === 'flat') { options.setValue('dmtNavModuleDepth', 0); }
+   if (config.dmtNavStyle)
+   {
+      options.setValue('dmtNavigation', {
+         compact: config.dmtNavStyle === 'compact',
+         flat: config.dmtNavStyle === 'flat'
+      });
+   }
 
    if (!options.isSet('dmtModuleAsPackage') && config.fromPackage)
    {
