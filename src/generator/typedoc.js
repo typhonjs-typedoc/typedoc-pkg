@@ -177,15 +177,11 @@ function setDMTOptions(config, options)
 
    if (!options.isSet('dmtFavicon') && dmtFavicon) { options.setValue('dmtFavicon', dmtFavicon); }
 
-   if (!options.isSet('dmtModuleNames') && config.dmtModuleNames)
-   {
-      options.setValue('dmtModuleNames', config.dmtModuleNames);
-   }
-
-   if (!options.isSet('dmtModuleReadme') && config.dmtModuleReadme)
-   {
-      options.setValue('dmtModuleReadme', config.dmtModuleReadme);
-   }
+   options.setValue('dmtModuleRemap', {
+      isPackage: true,
+      names: config.dmtModuleNames,
+      readme: config.dmtModuleReadme
+   });
 
    if (config.dmtNavStyle)
    {
@@ -193,11 +189,6 @@ function setDMTOptions(config, options)
          compact: config.dmtNavStyle === 'compact',
          flat: config.dmtNavStyle === 'flat'
       });
-   }
-
-   if (!options.isSet('dmtModuleAsPackage') && config.fromPackage)
-   {
-      options.setValue('dmtModuleAsPackage', true);
    }
 }
 
