@@ -183,13 +183,7 @@ function setDMTOptions(config, options)
       readme: config.dmtModuleReadme
    });
 
-   if (config.dmtNavStyle)
-   {
-      options.setValue('dmtNavigation', {
-         compact: config.dmtNavStyle === 'compact',
-         flat: config.dmtNavStyle === 'flat'
-      });
-   }
+   if (config.dmtNavStyle) { options.setValue('dmtNavigation', { style: config.dmtNavStyle }); }
 }
 
 /**
