@@ -25,7 +25,7 @@ export type PkgTypeDocConfig = {
    /**
     * Modify navigation module paths to be flat or compact singular paths.
     */
-   dmtNavStyle?: 'compact' | 'flat';
+   dmtNavStyle?: 'compact' | 'flat' | 'full';
 
    /**
     * Module name substitution.
@@ -50,7 +50,7 @@ export type PkgTypeDocConfig = {
    /**
     * Indicates that the entry point files are from `package.json`.
     */
-   fromPackage: boolean;
+   isPackage: boolean;
 
    /**
     * When true indicates that custom compiler options were loaded from `tsconfig` option.

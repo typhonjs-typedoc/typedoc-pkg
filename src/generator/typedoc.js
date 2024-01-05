@@ -178,7 +178,7 @@ function setDMTOptions(config, options)
    if (!options.isSet('dmtFavicon') && dmtFavicon) { options.setValue('dmtFavicon', dmtFavicon); }
 
    options.setValue('dmtModuleRemap', {
-      isPackage: true,
+      isPackage: config.isPackage,
       names: config.dmtModuleNames,
       readme: config.dmtModuleReadme
    });

@@ -91,7 +91,7 @@ async function processConfig(origConfig)
       dmtModuleNames: {},
       dmtModuleReadme: {},
       dmtNavStyle: config.dmtNavStyle,
-      fromPackage: false,
+      isPackage: false,
       hasCompilerOptions: false,
       linkPlugins: config.linkPlugins,
       output: config.output,
@@ -137,7 +137,7 @@ function processPath(config, pkgConfig)
 
       if (isPathDir || nextPath.endsWith('package.json'))
       {
-         pkgConfig.fromPackage = true;
+         pkgConfig.isPackage = true;
 
          const dirname = isPathDir ? path.resolve(nextPath) : path.dirname(path.resolve(nextPath));
 
@@ -295,7 +295,8 @@ function processTypedoc(config)
 /**
  * @typedef {object} GenerateConfig
  *
- * @property {'compact' | 'flat'}   [dmtNavStyle] Modify navigation module paths to be flat or compact singular paths.
+ * @property {'compact' | 'flat' | 'full'}   [dmtNavStyle='full'] Modify navigation module paths to be flat or compact
+ * singular paths.
  *
  * @property {string}   [exportCondition='types'] The export condition to query for `package.json` entry points.
  *
