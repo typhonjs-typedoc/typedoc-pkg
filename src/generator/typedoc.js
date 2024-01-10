@@ -10,7 +10,7 @@ import {
    TSConfigReader,
    TypeDocReader }      from 'typedoc';
 
-import { Logger }       from '#util';
+import { logger }       from '#util';
 
 export const linkPluginMap = new Map([
    ['dom', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/dom/2023'],
@@ -59,7 +59,7 @@ export async function generateTypedoc(config)
    }
    else
    {
-      Logger.warn('Warning: No project generated');
+      logger.warn('Warning: No project generated');
    }
 }
 

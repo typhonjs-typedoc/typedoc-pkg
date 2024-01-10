@@ -13,7 +13,7 @@ import {
    regexAllowedFiles,
    regexIsDTSFile }           from '../validation.js';
 
-import { Logger }             from '#util';
+import { logger }             from '#util';
 
 export class ExportMapSupport
 {
@@ -68,7 +68,7 @@ export class ExportMapSupport
             const match = entryPath.match(new RegExp(`${regexPattern}`));
             if (!match)
             {
-               Logger.verbose(`Could not resolve wildcard export for: "${exportPath}: "${globEntryPath}"`);
+               logger.verbose(`Could not resolve wildcard export for: "${exportPath}: "${globEntryPath}"`);
                continue;
             }
 
@@ -124,7 +124,7 @@ export class ExportMapSupport
       {
          if (!isFile(pEntryPath))
          {
-            Logger.warn(`Warning: export condition is not a file; "${pExportPath}": ${pEntryPath}`);
+            logger.warn(`Warning: export condition is not a file; "${pExportPath}": ${pEntryPath}`);
             return;
          }
 
@@ -178,8 +178,8 @@ export class ExportMapSupport
       // Log any entry points found.
       if (exportLog.length)
       {
-         Logger.verbose(`Loading entry points from 'package.json' export condition '${packageJson.exportCondition}':`);
-         for (const entry of exportLog) { Logger.verbose(entry); }
+         logger.verbose(`Loading entry points from 'package.json' export condition '${packageJson.exportCondition}':`);
+         for (const entry of exportLog) { logger.verbose(entry); }
       }
 
       return exportMap;
@@ -202,7 +202,7 @@ export class ExportMapSupport
       {
          if (!isDTSFile(pEntryPath))
          {
-            Logger.warn(`Warning: export condition is not a DTS file; "${pExportPath}": ${pEntryPath}`);
+            logger.warn(`Warning: export condition is not a DTS file; "${pExportPath}": ${pEntryPath}`);
             return;
          }
 
@@ -255,8 +255,8 @@ export class ExportMapSupport
       // Log any entry points found.
       if (exportLog.length)
       {
-         Logger.verbose(`Loading entry points from 'package.json' export condition 'types':`);
-         for (const entry of exportLog) { Logger.verbose(entry); }
+         logger.verbose(`Loading entry points from 'package.json' export condition 'types':`);
+         for (const entry of exportLog) { logger.verbose(entry); }
       }
 
       return exportMap;

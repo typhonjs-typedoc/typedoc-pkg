@@ -20,7 +20,7 @@ import {
    validateCompilerOptions,
    validateConfig }           from './validation.js';
 
-import { Logger }             from '#util';
+import { logger }             from '#util';
 
 /**
  * Generates docs from given configuration.
@@ -37,14 +37,14 @@ export async function generateDocs(configs)
    {
       if (typeof config?.logLevel === 'string')
       {
-         if (!Logger.isValidLevel(config.logLevel))
+         if (!logger.isValidLevel(config.logLevel))
          {
-            Logger.error(
+            logger.error(
              `Invalid options: log level '${config.logLevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
             return;
          }
 
-         Logger.logLevel = config.logLevel;
+         logger.setLogLevel(config.logLevel);
       }
 
       const origCWD = process.cwd();
@@ -53,7 +53,7 @@ export async function generateDocs(configs)
 
       if (typeof processedConfigOrError === 'string')
       {
-         Logger.error(processedConfigOrError);
+         logger.error(processedConfigOrError);
          return;
       }
 
@@ -149,7 +149,7 @@ function processPath(config, pkgConfig)
 
          if (filepath)
          {
-            Logger.verbose(
+            logger.verbose(
              `Processing: ${getRelativePath({ basepath: origCWD, filepath: path.toUnix(filepath) })}`);
          }
 
@@ -164,8 +164,8 @@ function processPath(config, pkgConfig)
          const resolvedPath = path.resolve(nextPath);
          allEntryPoints.add(resolvedPath);
 
-         Logger.verbose('Loading entry point from file path specified:');
-         Logger.verbose(resolvedPath);
+         logger.verbose('Loading entry point from file path specified:');
+         logger.verbose(resolvedPath);
       }
 
       process.chdir(origCWD);
@@ -224,7 +224,7 @@ function processTSConfig(config, pkgConfig)
 
    if (config.tsconfigPath)
    {
-      Logger.verbose(`Loading TS compiler options from 'tsconfig' path: ${config.tsconfigPath}`);
+      logger.verbose(`Loading TS compiler options from 'tsconfig' path: ${config.tsconfigPath}`);
 
       try
       {
@@ -276,7 +276,7 @@ function processTypedoc(config)
 
    if (config.typedocPath)
    {
-      Logger.verbose(`Loading TypeDoc options from 'typedoc' path: ${config.typedocPath}`);
+      logger.verbose(`Loading TypeDoc options from 'typedoc' path: ${config.typedocPath}`);
 
       try
       {

@@ -9,7 +9,7 @@ import path                from 'upath';
 
 import { generateDocs }    from '../generator/generateDocs.js';
 
-import { Logger }          from '#util';
+import { logger }          from '#util';
 
 /**
  * Processes CLI options and invokes `generateDocs`.
@@ -80,12 +80,12 @@ async function processOptions(opts)
 
    if (typeof opts.loglevel === 'string')
    {
-      if (!Logger.isValidLevel(opts.loglevel))
+      if (!logger.isValidLevel(opts.loglevel))
       {
          exit(`Invalid options: log level '${opts.loglevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
       }
 
-      Logger.logLevel = opts.loglevel;
+      logger.setLogLevel(opts.loglevel);
       logLevel = opts.loglevel;
    }
 
@@ -192,12 +192,12 @@ async function processConfigFile(opts, logLevel)
 
          if (isFile('./typedoc-pkg.config.js'))
          {
-            Logger.verbose(`Loading config from path: './typedoc-pkg.config.js'`);
+            logger.verbose(`Loading config from path: './typedoc-pkg.config.js'`);
             config = await loadConfig(path.resolve('./typedoc-pkg.config.js'));
          }
          else if (isFile('./typedoc-pkg.config.mjs'))
          {
-            Logger.verbose(`Loading config from path: './typedoc-pkg.config.mjs'`);
+            logger.verbose(`Loading config from path: './typedoc-pkg.config.mjs'`);
             config = await loadConfig(path.resolve('./typedoc-pkg.config.mjs'));
          }
          break;
@@ -209,7 +209,7 @@ async function processConfigFile(opts, logLevel)
 
          if (!isFile(configPath)) { exit(`No config file available at: ${configPath}`); }
 
-         Logger.verbose(`Loading config from path: '${configPath}'`);
+         logger.verbose(`Loading config from path: '${configPath}'`);
          config = await loadConfig(configPath);
          break;
       }
@@ -238,6 +238,6 @@ async function processConfigFile(opts, logLevel)
  */
 function exit(message)
 {
-   Logger.error(message);
+   logger.error(message);
    process.exit(1);
 }

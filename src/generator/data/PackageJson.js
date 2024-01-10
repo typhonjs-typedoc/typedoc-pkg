@@ -6,7 +6,7 @@ import {
    PkgTypeDocMapping }        from '../system/index.js';
 import { isDTSFile }          from '../validation.js';
 
-import { Logger }             from '#util';
+import { logger }             from '#util';
 
 export class PackageJson
 {
@@ -34,7 +34,7 @@ export class PackageJson
 
       if (typeof packageObj.exports !== 'object')
       {
-         Logger.verbose(`No 'exports' conditions found in 'package.json'.`);
+         logger.verbose(`No 'exports' conditions found in 'package.json'.`);
       }
       else
       {
@@ -123,31 +123,31 @@ export class PackageJson
       {
          if (typeof this.data.types === 'string')
          {
-            Logger.verbose(`Loading entry point from package.json 'types' property':`);
+            logger.verbose(`Loading entry point from package.json 'types' property':`);
 
             if (!isDTSFile(this.data.types))
             {
-               Logger.warn(`'types' property in package.json is not a declaration file: ${this.data.types}`);
+               logger.warn(`'types' property in package.json is not a declaration file: ${this.data.types}`);
             }
             else
             {
                const resolvedPath = path.resolve(this.data.types);
-               Logger.verbose(resolvedPath);
+               logger.verbose(resolvedPath);
                this.#entryPoints.add(path.resolve(resolvedPath));
             }
          }
          else if (typeof this.data.typings === 'string')
          {
-            Logger.verbose(`Loading entry point from package.json 'typings' property':`);
+            logger.verbose(`Loading entry point from package.json 'typings' property':`);
 
             if (!isDTSFile(this.data.typings))
             {
-               Logger.warn(`'typings' property in package.json is not a declaration file: ${this.data.typings}`);
+               logger.warn(`'typings' property in package.json is not a declaration file: ${this.data.typings}`);
             }
             else
             {
                const resolvedPath = path.resolve(this.data.typings);
-               Logger.verbose(resolvedPath);
+               logger.verbose(resolvedPath);
                this.#entryPoints.add(path.resolve(resolvedPath));
             }
          }

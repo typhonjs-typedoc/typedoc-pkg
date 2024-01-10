@@ -11,8 +11,7 @@ import path                   from 'upath';
 import { linkPluginMap }      from './typedoc.js';
 import ts                     from 'typescript';
 
-import { Logger }             from '#util';
-import upath from "upath";
+import { logger }             from '#util';
 
 // Only allow standard JS / TS files.
 export const regexAllowedFiles = /\.(js|mjs|ts|mts)$/;
@@ -46,7 +45,7 @@ export function validateCompilerOptions(compilerOptions)
 
    if (errors.length > 0)
    {
-      for (const err of errors) { Logger.error(`[TS] ${ts.flattenDiagnosticMessageText(err.messageText, '\n')}`); }
+      for (const err of errors) { logger.error(`[TS] ${ts.flattenDiagnosticMessageText(err.messageText, '\n')}`); }
       return void 0;
    }
 
@@ -65,25 +64,25 @@ export async function validateConfig(config)
 {
    if (config.dmtNavStyle !== void 0 && config.dmtNavStyle !== 'compact' && config.dmtNavStyle !== 'flat')
    {
-      Logger.error(`Error: 'dmtNavStyle' must be 'compact' or 'flat'.`);
+      logger.error(`Error: 'dmtNavStyle' must be 'compact' or 'flat'.`);
       return false;
    }
 
    if (typeof config.exportCondition !== 'string')
    {
-      Logger.error(`Error: 'exportCondition' must be a string.`);
+      logger.error(`Error: 'exportCondition' must be a string.`);
       return false;
    }
 
    if (typeof config.output !== 'string')
    {
-      Logger.error(`Error: 'output' must be a string.`);
+      logger.error(`Error: 'output' must be a string.`);
       return false;
    }
 
    if (config.packageName !== void 0 && typeof config.packageName !== 'string')
    {
-      Logger.error(`Error: 'packageName' must be a string.`);
+      logger.error(`Error: 'packageName' must be a string.`);
       return false;
    }
 
@@ -91,19 +90,19 @@ export async function validateConfig(config)
    {
       if (typeof config.monoRepo !== 'boolean')
       {
-         Logger.error(`Error: 'monoRepo' must be a boolean.`);
+         logger.error(`Error: 'monoRepo' must be a boolean.`);
          return false;
       }
 
       if (config.monoRepo && !isDirectory(config.path))
       {
-         Logger.error(`Error: 'monoRepo' is enabled and 'path' is not a directory.`);
+         logger.error(`Error: 'monoRepo' is enabled and 'path' is not a directory.`);
          return false;
       }
 
       const resolvePath = path.resolve(config.path);
-      Logger.verbose('Searching for all NPM packages under directory:');
-      Logger.verbose(resolvePath);
+      logger.verbose('Searching for all NPM packages under directory:');
+      logger.verbose(resolvePath);
 
       // Get all `package.json` files in the given folder and sub-folders. Any found files will be added to `path`.
       const packageFilepaths = await getFileList({
@@ -115,13 +114,13 @@ export async function validateConfig(config)
 
       if (!packageFilepaths.length)
       {
-         Logger.error('No NPM packages found for mono-repo base directory:');
-         Logger.error(resolvePath);
+         logger.error('No NPM packages found for mono-repo base directory:');
+         logger.error(resolvePath);
          return false;
       }
 
-      Logger.verbose('Found and expanding path for the following packages:');
-      for (const packagePath of packageFilepaths) { Logger.verbose(packagePath); }
+      logger.verbose('Found and expanding path for the following packages:');
+      for (const packagePath of packageFilepaths) { logger.verbose(packagePath); }
 
       config.path = packageFilepaths;
    }
@@ -130,7 +129,7 @@ export async function validateConfig(config)
    {
       if (typeof config.path !== 'string' && !isIterable(config.path))
       {
-         Logger.error(`Error: 'path' must be a string or iterable list of strings.`);
+         logger.error(`Error: 'path' must be a string or iterable list of strings.`);
          return false;
       }
 
@@ -145,14 +144,14 @@ export async function validateConfig(config)
 
          if (!(isPathDir || isPathFile))
          {
-            Logger.error(`Error: 'path' is not a directory or file; ${unixPath}`);
+            logger.error(`Error: 'path' is not a directory or file; ${unixPath}`);
             return false;
          }
 
          if (isPathFile &&
           !(regexIsDTSFile.test(unixPath) || regexAllowedFiles.test(unixPath) || unixPath.endsWith('package.json')))
          {
-            Logger.error(`Error: 'path' is not an allowed entry point or 'package.json' file; ${unixPath}`);
+            logger.error(`Error: 'path' is not an allowed entry point or 'package.json' file; ${unixPath}`);
             return false;
          }
       }
@@ -166,7 +165,7 @@ export async function validateConfig(config)
 
       if (!packageObj)
       {
-         Logger.error(`No 'package.json' found in: ${path.toUnix(cwd)}`);
+         logger.error(`No 'package.json' found in: ${path.toUnix(cwd)}`);
          return false;
       }
 
@@ -175,19 +174,19 @@ export async function validateConfig(config)
 
    if (config.tsconfigPath !== void 0 && !isFile(config.tsconfigPath))
    {
-      Logger.error(`Error: 'tsconfigPath' is not a file; ${config.tsconfigPath}`);
+      logger.error(`Error: 'tsconfigPath' is not a file; ${config.tsconfigPath}`);
       return false;
    }
 
    if (config.typedocOptions !== void 0 && !isObject(config.typedocOptions))
    {
-      Logger.error(`Error: 'typedocOptions' is not an object.`);
+      logger.error(`Error: 'typedocOptions' is not an object.`);
       return false;
    }
 
    if (config.typedocPath !== void 0 && !isFile(config.typedocPath))
    {
-      Logger.error(`Error: 'typedocPath' is not a file; ${config.typedocPath}`);
+      logger.error(`Error: 'typedocPath' is not a file; ${config.typedocPath}`);
       return false;
    }
 
@@ -198,7 +197,7 @@ export async function validateConfig(config)
 
       if (!isIterable(config.linkPlugins))
       {
-         Logger.error(`Error: 'linkPlugins' must be an iterable list.`);
+         logger.error(`Error: 'linkPlugins' must be an iterable list.`);
          return false;
       }
 
@@ -207,7 +206,7 @@ export async function validateConfig(config)
       // Detect when dom and worker are configured together as they are exclusive.
       if (entries.has('dom') && entries.has('worker'))
       {
-         Logger.error(
+         logger.error(
           `API link error: You may only include either 'dom' or 'worker' for the DOM API or Web Worker API.`);
          return false;
       }
@@ -216,11 +215,11 @@ export async function validateConfig(config)
       {
          if (!linkPluginMap.has(entry))
          {
-            Logger.warn(`API Link warning: Unknown API link '${entry}'.`);
+            logger.warn(`API Link warning: Unknown API link '${entry}'.`);
             continue;
          }
 
-         Logger.verbose(`Adding API link plugin '${entry}': ${linkPluginMap.get(entry)}`);
+         logger.verbose(`Adding API link plugin '${entry}': ${linkPluginMap.get(entry)}`);
          plugins.push(linkPluginMap.get(entry));
       }
 
