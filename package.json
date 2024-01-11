@@ -15,7 +15,8 @@
       "import" : "./src/generator/index.js"
     },
     "./plugin/link-checker": {
-      "import": "./src/plugin/external/link-checker/index.js"
+      "import": "./src/plugin/external/link-checker/index.js",
+      "default": "./src/plugin/external/link-checker/index.js"
     },
     "./package.json": "./package.json"
   },
