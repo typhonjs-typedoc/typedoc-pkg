@@ -84,7 +84,7 @@ async function processOptions(opts)
    {
       if (!logger.isValidLevel(opts.loglevel))
       {
-         exit(`Invalid options: log level '${opts.loglevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
+         exit(`Invalid options: log level '${opts.loglevel}' must be 'verbose', 'info', 'warn', 'error', or 'off'.`);
       }
 
       logger.setLogLevel(opts.loglevel);
@@ -141,7 +141,7 @@ function processConfigDefault(opts, logLevel)
    {
       if (!(['compact', 'flat', 'full'].includes(opts['dmt-nav-style'])))
       {
-         exit(`Invalid options: dmt-nav-style must be 'compact', 'flat', or 'full'.`);
+         exit(`Invalid options: dmt-nav-style '${opts['dmt-nav-style']}' must be 'compact', 'flat', or 'full'.`);
       }
 
       config.dmtNavStyle = opts['dmt-nav-style'];
