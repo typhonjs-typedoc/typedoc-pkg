@@ -58,6 +58,11 @@ export type PkgTypeDocConfig = {
    hasCompilerOptions: boolean;
 
    /**
+    * Enables the link checker plugin.
+    */
+   linkChecker: boolean;
+
+   /**
     * All API link plugins to load.
     */
    linkPlugins: Iterable<string>;

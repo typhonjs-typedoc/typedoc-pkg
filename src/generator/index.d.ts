@@ -10,19 +10,25 @@ import * as typedoc from 'typedoc';
 declare function generateDocs(configs: GenerateConfig | Iterable<GenerateConfig>): Promise<void>;
 type GenerateConfig = {
     /**
-     * Modify navigation module paths to be flat or compact singular paths.
+     * Modify navigation module paths to be flat or compact
+     * singular paths; default: 'full'.
      */
-    dmtNavStyle?: 'compact' | 'flat';
+    dmtNavStyle?: 'compact' | 'flat' | 'full';
     /**
      * The export condition to query for `package.json` entry points.
      */
     exportCondition?: string;
     /**
+     * Enable debug TypeDoc logging with a unknown symbol link checker.
+     */
+    linkChecker?: boolean;
+    /**
      * All API link plugins to load.
      */
     linkPlugins?: Iterable<'dom' | 'esm' | 'worker'>;
     /**
-     * Defines the logging level.
+     * Defines the logging level; default:
+     * 'info'.
      */
     logLevel?: 'all' | 'verbose' | 'info' | 'warn' | 'error';
     /**
@@ -40,7 +46,7 @@ type GenerateConfig = {
      */
     path?: string | Iterable<string>;
     /**
-     * Path to custom 'tsconfig.json' to load.
+     * Path to custom `tsconfig.json` to load.
      */
     tsconfigPath?: string;
     /**
