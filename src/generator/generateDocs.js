@@ -296,13 +296,14 @@ function processTypedoc(config)
  * @typedef {object} GenerateConfig
  *
  * @property {'compact' | 'flat' | 'full'}   [dmtNavStyle='full'] Modify navigation module paths to be flat or compact
- * singular paths.
+ * singular paths; default: 'full'.
  *
  * @property {string}   [exportCondition='types'] The export condition to query for `package.json` entry points.
  *
  * @property {Iterable<'dom' | 'esm' | 'worker'>}  [linkPlugins] All API link plugins to load.
  *
- * @property {'all' | 'verbose' | 'info' | 'warn' | 'error'} [logLevel='info'] Defines the logging level.
+ * @property {'all' | 'verbose' | 'info' | 'warn' | 'error'} [logLevel='info'] Defines the logging level; default:
+ * 'info'.
  *
  * @property {string}   [output='docs'] Provide a directory path for generated documentation.
  *
@@ -314,8 +315,7 @@ function processTypedoc(config)
  *
  * @property {string}   [tsconfigPath] Path to custom `tsconfig.json` to load.
  *
- * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set. See:
- * {@link https://typedoc.org/api/interfaces/Configuration.TypeDocOptions.html | TypeDocOptions}
+ * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set.
  *
  * @property {string}   [typedocPath] Path to custom `typedoc.json` to load.
  */
