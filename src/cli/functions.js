@@ -137,13 +137,15 @@ function processConfigDefault(opts, logLevel)
 
    // dmtNavStyle ----------------------------------------------------------------------------------------------------
 
-   if (opts['dmt-nav-compact'] && opts?.['dmt-nav-flat'])
+   if (opts['dmt-nav-style'] !== void 0)
    {
-      exit(`'--dmt-nav-compact' and '--dmt-nav-flat' is enabled; choose only one.`);
-   }
+      if (!(['compact', 'flat', 'full'].includes(opts['dmt-nav-style'])))
+      {
+         exit(`Invalid options: dmt-nav-style must be 'compact', 'flat', or 'full'.`);
+      }
 
-   if (typeof opts['dmt-nav-compact'] === 'boolean' && opts['dmt-nav-compact']) { config.dmtNavStyle = 'compact'; }
-   if (typeof opts['dmt-nav-flat'] === 'boolean' && opts['dmt-nav-flat']) { config.dmtNavStyle = 'flat'; }
+      config.dmtNavStyle = opts['dmt-nav-style'];
+   }
 
    // linkChecker ----------------------------------------------------------------------------------------------------
 

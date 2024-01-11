@@ -62,9 +62,9 @@ export function validateCompilerOptions(compilerOptions)
  */
 export async function validateConfig(config)
 {
-   if (config.dmtNavStyle !== void 0 && config.dmtNavStyle !== 'compact' && config.dmtNavStyle !== 'flat')
+   if (config.dmtNavStyle !== void 0 && !(['compact', 'flat', 'full'].includes(config.dmtNavStyle)))
    {
-      logger.error(`Error: 'dmtNavStyle' must be 'compact' or 'flat'.`);
+      logger.error(`Error: 'dmtNavStyle' must be 'compact', 'flat', or 'full'.`);
       return false;
    }
 
