@@ -312,9 +312,10 @@ function processTypedoc(config)
  * @property {string | Iterable<string>}  [path] Path to a source file, `package.json`, or directory with a
  * `package.json` to use as entry points; you may provide an iterable list of paths.
  *
- * @property {string}   [tsconfigPath] Path to custom 'tsconfig.json' to load.
+ * @property {string}   [tsconfigPath] Path to custom `tsconfig.json` to load.
  *
- * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set.
+ * @property {Partial<import('typedoc').TypeDocOptions>}   [typedocOptions] Direct TypeDoc options to set. See:
+ * {@link https://typedoc.org/api/interfaces/Configuration.TypeDocOptions.html | TypeDocOptions}
  *
  * @property {string}   [typedocPath] Path to custom `typedoc.json` to load.
  */
