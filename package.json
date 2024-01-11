@@ -2,10 +2,21 @@
   "name": "@typhonjs-typedoc/typedoc-pkg",
   "description": "Provides a zero config CLI to create API documentation with TypeDoc from `package.json` exports conditions.",
   "version": "0.0.0",
+  "license": "MPL-2.0",
   "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
   "type": "module",
   "bin": "./src/cli/index.js",
+  "imports": {
+    "#util": "./src/util/index.js"
+  },
   "exports": {
+    ".": {
+      "types" : "./src/generator/index.d.ts",
+      "import" : "./src/generator/index.js"
+    },
+    "./plugin/link-checker": {
+      "import": "./src/plugin/external/link-checker/index.js"
+    },
     "./package.json": "./package.json"
   },
   "contributors": [
@@ -13,18 +24,25 @@
   ],
   "dependencies": {
     "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
-    "@typhonjs-typedoc/typedoc-theme-dmt": "^0.2.0-next.1",
-    "@typhonjs-utils/file-util": "^0.0.10",
-    "@typhonjs-utils/package-json": "^0.6.0",
+    "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.7",
+    "@typhonjs-utils/file-util": "^0.1.0",
+    "@typhonjs-utils/logger-color": "^0.1.0-next.2",
+    "@typhonjs-utils/object": "^0.1.0",
+    "@typhonjs-utils/package-json": "^0.7.0",
+    "glob": "^10.3.10",
+    "is-glob": "^4.0.3",
     "resolve.exports": "^2.0.2",
     "sade": "^1.8.1",
-    "typedoc": ">=0.25.1 <0.26.0"
+    "upath": "^2"
   },
   "devDependencies": {
+    "@typhonjs-build-test/esm-d-ts" : "^0.2.0-next.4",
     "@typhonjs-config/eslint-config": "^0.6.0",
-    "eslint": "^8.53.0"
+    "eslint": "^8.53.0",
+    "type-fest": "^4.8.3"
   },
   "peerDependencies": {
+    "typedoc": ">=0.25.1 <0.26.0",
     "typescript": ">=5.1.0 <6"
   },
   "engines": {
@@ -33,7 +51,6 @@
   "files": [
     "/src"
   ],
-  "homepage": "https://github.com/typhonjs-typedoc/typedoc-d-ts#readme",
   "keywords": [
     "typhonjs",
     "typedoc",
@@ -43,10 +60,25 @@
     "dts",
     "declarations"
   ],
-  "license": "MPL-2.0",
-  "repository": "github:typhonjs-typedoc/typedoc-d-ts",
-  "bugs": "https://github.com/typhonjs-typedoc/typedoc-d-ts/issues",
+  "typedocOptions": {
+    "dmtLinksService": {
+      "Discord": "https://typhonjs.io/discord/",
+      "GitHub": "https://github.com/typhonjs-typedoc/typedoc-pkg",
+      "NPM": "https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-pkg"
+    },
+    "externalSymbolLinkMappings": {
+      "typedoc": {
+        "TypeDocOptions": "https://typedoc.org/api/interfaces/Configuration.TypeDocOptions.html"
+      }
+    }
+  },
+  "bugs": "https://github.com/typhonjs-typedoc/typedoc-pkg/issues",
+  "homepage": "https://github.com/typhonjs-typedoc/typedoc-pkg#readme",
+  "repository": "github:typhonjs-typedoc/typedoc-pkg",
+  "apidocs": "https://typhonjs-typedoc.github.io/typedoc-pkg/",
   "scripts": {
-    "eslint": "eslint ."
+    "eslint": "eslint .",
+    "docs": "node ./src/cli/index.js --api-link esm",
+    "types": "esm-d-ts gen src/generator/index.js"
   }
 }
