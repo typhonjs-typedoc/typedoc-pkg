@@ -1,7 +1,9 @@
 import fs                  from 'node:fs';
 import { pathToFileURL }   from 'node:url';
 
-import {isDirectory, isFile} from '@typhonjs-utils/file-util';
+import {
+   isDirectory,
+   isFile }                from '@typhonjs-utils/file-util';
 import {
    isIterable,
    isObject }              from '@typhonjs-utils/object';
@@ -106,7 +108,10 @@ function processConfigDefault(opts, logLevel)
    /**
     * @type {import('../generator').GenerateConfig}
     */
-   const config = { logLevel };
+   const config = {
+      linkChecker: false,
+      logLevel
+   };
 
    // path -----------------------------------------------------------------------------------------------------------
 
@@ -139,6 +144,10 @@ function processConfigDefault(opts, logLevel)
 
    if (typeof opts['dmt-nav-compact'] === 'boolean' && opts['dmt-nav-compact']) { config.dmtNavStyle = 'compact'; }
    if (typeof opts['dmt-nav-flat'] === 'boolean' && opts['dmt-nav-flat']) { config.dmtNavStyle = 'flat'; }
+
+   // linkChecker ----------------------------------------------------------------------------------------------------
+
+   if (typeof opts['link-checker'] === 'boolean' && opts['link-checker']) { config.linkChecker = true; }
 
    // linkPlugins ----------------------------------------------------------------------------------------------------
 
@@ -215,17 +224,24 @@ async function processConfigFile(opts, logLevel)
       }
    }
 
+   const modifyConfig = (config) =>
+   {
+      if (typeof loglevel === 'string') { config.logLevel = logLevel; }
+      if (typeof opts['link-checker'] === 'boolean' && opts['link-checker'])
+      {
+         config.linkChecker = true;
+         config.logLevel = 'debug';
+      }
+   }
+
    // Apply any global command line options to overriding config file values.
    if (isIterable(config))
    {
-      for (const entry of config)
-      {
-         if (typeof loglevel === 'string') { entry.logLevel = logLevel; }
-      }
+      for (const entry of config) { modifyConfig(entry); }
    }
    else if (isObject(config))
    {
-      if (typeof loglevel === 'string') { config.logLevel = logLevel; }
+      modifyConfig(config);
    }
 
    return config;

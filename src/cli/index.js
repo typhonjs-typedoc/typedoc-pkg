@@ -12,7 +12,7 @@ const program = sade('typedoc-pkg', true)
    .version(packageObj?.version)
    .describe(description)
    .option('-a, --api-link', `Enable API linking; provide a comma separated string including 'dom', 'esm', and / or 'worker'.`)
-   .option('-c, --config', `Provide a path to custom config.`)
+   .option('-c, --config', `Load default 'typedoc-pkg.config.js' or provide a path to custom config.`)
    .option('-d, --typedoc', `Provide a path to custom 'typedoc.json' to load.`)
    .option('-e, --export', `Provide a specific 'package.json' export condition to parse for entry points.`, 'types')
    .option('-l, --loglevel', `Specify logging level: 'all', 'verbose', 'info', 'warn', or 'error'`)
@@ -22,6 +22,7 @@ const program = sade('typedoc-pkg', true)
    .option('-t, --tsconfig', `Provide a path to custom 'tsconfig.json' to load.`)
    .option('--dmt-nav-compact', `[Default Modern Theme] Package / module navigation singular paths are compacted.`)
    .option('--dmt-nav-flat', `[Default Modern Theme] Package / module navigation paths are flattened.`)
+   .option('--link-checker', `Outputs debug information about unlinked documentation symbols during generation.`)
    .action(generate);
 
 program.parse(process.argv);

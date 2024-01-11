@@ -80,6 +80,7 @@ async function processConfig(origConfig)
     */
    const config = Object.assign({
       exportCondition: 'types',
+      linkChecker: false,
       logLevel: 'info',
       output: 'docs'
    }, origConfig);
@@ -93,6 +94,7 @@ async function processConfig(origConfig)
       dmtNavStyle: config.dmtNavStyle,
       isPackage: false,
       hasCompilerOptions: false,
+      linkChecker: config.linkChecker,
       linkPlugins: config.linkPlugins,
       output: config.output,
       typedocOptions: config.typedocOptions
@@ -299,6 +301,8 @@ function processTypedoc(config)
  * singular paths; default: 'full'.
  *
  * @property {string}   [exportCondition='types'] The export condition to query for `package.json` entry points.
+ *
+ * @property {boolean}  [linkChecker] Enable debug TypeDoc logging with a unknown symbol link checker.
  *
  * @property {Iterable<'dom' | 'esm' | 'worker'>}  [linkPlugins] All API link plugins to load.
  *

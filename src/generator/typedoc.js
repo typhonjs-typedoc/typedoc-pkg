@@ -121,6 +121,14 @@ async function createTypedocOptions(config)
       }
    }
 
+   if (config.linkChecker)
+   {
+      if (!optionsDoc.plugin.includes('@typhonjs-typedoc/typedoc-pkg/plugin/link-checker'))
+      {
+         optionsDoc.plugin.push('@typhonjs-typedoc/typedoc-pkg/plugin/link-checker');
+      }
+   }
+
    return optionsDoc;
 }
 
