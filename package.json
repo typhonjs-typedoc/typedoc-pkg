@@ -27,7 +27,7 @@
     "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
     "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.7",
     "@typhonjs-utils/file-util": "^0.1.0",
-    "@typhonjs-utils/logger-color": "^0.1.0-next.2",
+    "@typhonjs-utils/logger-color": "^0.1.0",
     "@typhonjs-utils/object": "^0.1.0",
     "@typhonjs-utils/package-json": "^0.7.0",
     "glob": "^10.3.10",
@@ -55,6 +55,7 @@
   "keywords": [
     "typhonjs",
     "typedoc",
+    "typedoc-plugin",
     "documentation",
     "cli",
     "d.ts",
