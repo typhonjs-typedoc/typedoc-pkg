@@ -21,7 +21,7 @@ const program = sade('typedoc-pkg', true)
    .option('-p, --path', `Path to a file to use as a single entry point or specific 'package.json' to load.`)
    .option('-t, --tsconfig', `Provide a path to custom 'tsconfig.json' to load.`)
    .option('--dmt-nav-style', `[Default Modern Theme] Modify package / module navigation paths to be 'compact', 'flat', or 'full'.`, 'full')
-   .option('--link-checker', `Outputs debug information about unlinked documentation symbols during generation.`)
+   .option('--link-checker', `Outputs warnings about unlinked documentation reflections / types during generation.`)
    .action(generate);
 
 program.parse(process.argv);
