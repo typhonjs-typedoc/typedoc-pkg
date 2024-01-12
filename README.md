@@ -171,6 +171,11 @@ configuration as it used in `typedoc-pkg` itself [here](https://github.com/typho
   ![DMT Service Links](https://i.imgur.com/xC4oa0C.jpg)
 
 
+- `typedoc-pkg` leverages API linking for all Typescript built-in library declarations covering the entire modern web
+including ES2023 / JS, DOM, and Web Worker APIs. This is accomplished through [@typhonjs-typedoc/ts-lib-docs](https://www.npmjs.com/package/@typhonjs-typedoc/ts-lib-docs)
+and enabled when the `--api-link` CLI option is used.
+
+
 - `typedoc-pkg` supports documentation for a variety of Javascript / Typescript projects. For ES Module / JS developers
 a related CLI package to easily generate Typescript declarations from ES Module source code is available via
 [@typhonjs-build-test/esm-d-ts](https://www.npmjs.com/package/@typhonjs-build-test/esm-d-ts).
