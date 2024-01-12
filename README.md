@@ -159,6 +159,12 @@ await generateDocs([
 
 [API documentation](https://typhonjs-typedoc.github.io/typedoc-pkg/)
 
+## Automatic Assets
+
+`typedoc-pkg` automatically searches for assets to add to the generated documentation. Presently, there is support for
+linking `favicon.ico` from `./favicon.ico` or `./assets/docs/favicon.ico`. In the future linking standard markdown files
+like `CHANGELOG.md` may be enabled.
+
 ## Synergies
 
 - `typedoc-pkg` utilizes the [Default Modern Theme](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) for TypeDoc.
