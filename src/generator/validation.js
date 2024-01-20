@@ -107,7 +107,8 @@ export async function validateConfig(config)
       // Get all `package.json` files in the given folder and sub-folders. Any found files will be added to `path`.
       const packageFilepaths = await getFileList({
          dir: resolvePath,
-         includeFile: /^package\.json$/,
+         includeFile: /package\.json$/,
+         excludeDir: 'node_modules',
          resolve: true,
          walk: true
       });
