@@ -14,7 +14,7 @@ import { logger }       from '#util';
 
 export const linkPluginMap = new Map([
    ['dom', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/dom/2023'],
-   ['esm', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/esm/2023'],
+   ['es', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/esm/2023'],
    ['worker', '@typhonjs-typedoc/ts-lib-docs/typedoc/ts-links/worker/2023']
 ]);
 

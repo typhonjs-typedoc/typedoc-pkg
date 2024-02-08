@@ -304,7 +304,7 @@ function processTypedoc(config)
  *
  * @property {boolean}  [linkChecker] Enable debug TypeDoc logging with a unknown symbol link checker.
  *
- * @property {Iterable<'dom' | 'esm' | 'worker'>}  [linkPlugins] All API link plugins to load.
+ * @property {Iterable<'dom' | 'es' | 'worker'>}  [linkPlugins] All API link plugins to load.
  *
  * @property {'all' | 'verbose' | 'info' | 'warn' | 'error'} [logLevel='info'] Defines the logging level; default:
  * 'info'.

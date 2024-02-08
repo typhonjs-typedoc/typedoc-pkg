@@ -25,7 +25,7 @@ type GenerateConfig = {
     /**
      * All API link plugins to load.
      */
-    linkPlugins?: Iterable<'dom' | 'esm' | 'worker'>;
+    linkPlugins?: Iterable<'dom' | 'es' | 'worker'>;
     /**
      * Defines the logging level; default:
      * 'info'.

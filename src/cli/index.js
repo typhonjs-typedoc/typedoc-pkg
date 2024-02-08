@@ -7,11 +7,11 @@ import { generate }     from './functions.js';
 // Retrieve the `typedoc-pkg` package.
 const packageObj = getPackage({ filepath: import.meta.url });
 
-const description = `Generate documentation with TypeDoc automatically from 'package.json' export conditions. By default, any local 'package.json' is analyzed for export conditions with 'types' defined. You may otherwise specify an export condition providing entry points for documentation generation. You may also specify a 'path' to an entry point or other 'package.json' to load.;`;
+const description = `Generate documentation with TypeDoc automatically from 'package.json' export conditions. By default, any local 'package.json' is analyzed for export conditions with 'types' defined. You may otherwise specify an export condition providing entry points for documentation generation. You may also specify a 'path' to an entry point or other 'package.json' to load.`;
 const program = sade('typedoc-pkg', true)
    .version(packageObj?.version)
    .describe(description)
-   .option('-a, --api-link', `Enable API linking; provide a comma separated string including 'dom', 'esm', 'worker'.`)
+   .option('-a, --api-link', `Enable API linking; provide a comma separated string including 'dom', 'es', 'worker'.`)
    .option('-c, --config', `Load default 'typedoc-pkg.config.js' or provide a path to custom config.`)
    .option('-d, --typedoc', `Provide a path to custom 'typedoc.json' to load.`)
    .option('-e, --export', `Provide a specific 'package.json' export condition to parse for entry points.`, 'types')
