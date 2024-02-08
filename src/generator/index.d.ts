@@ -1,4 +1,5 @@
 import * as typedoc from 'typedoc';
+import * as _typhonjs_utils_logger_color from '@typhonjs-utils/logger-color';
 
 /**
  * Generates docs from given configuration.
@@ -30,7 +31,7 @@ type GenerateConfig = {
      * Defines the logging level; default:
      * 'info'.
      */
-    logLevel?: 'all' | 'verbose' | 'info' | 'warn' | 'error';
+    logLevel?: _typhonjs_utils_logger_color.LogLevel;
     /**
      * Provide a directory path for generated documentation.
      */
