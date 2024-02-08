@@ -26,8 +26,7 @@ export class ExportMapSupport
     */
    static create(packageJson)
    {
-      return packageJson.exportCondition === 'types' ? this.#createExportMapTypes(packageJson) :
-       this.#createExportMapCondition(packageJson);
+      return this.#createExportMap(packageJson);
    }
 
    /**
@@ -114,7 +113,7 @@ export class ExportMapSupport
     *
     * @returns {import('../types').ExportMap} Resolved file paths for given export condition.
     */
-   static #createExportMapCondition(packageJson)
+   static #createExportMap(packageJson)
    {
       /** @type {import('../types').ExportMap} */
       const exportMap = new Map();
@@ -122,12 +121,6 @@ export class ExportMapSupport
 
       const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
       {
-         if (!isFile(pEntryPath))
-         {
-            logger.warn(`Warning: export condition is not a file; "${pExportPath}": ${pEntryPath}`);
-            return;
-         }
-
          const filepath = path.resolve(pEntryPath);
 
          if (exportMap.has(filepath)) { return; }
@@ -136,42 +129,39 @@ export class ExportMapSupport
          exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.dirpath, filepath })}`);
       };
 
-      for (const exportPath in packageJson.exports)
+      // Choose the correct result processing function. The `types` condition has alternate verification.
+      const processResult = packageJson.exportCondition === 'types' ? this.#processResultTypes :
+       this.#processResultSource;
+
+      if (typeof packageJson.exports === 'string' && packageJson.exportCondition === 'default')
       {
-         let result;
-
-         try
+         // The exports field is a single string / default export.
+         processResult(packageJson.exports, 'exports', processExport);
+      }
+      else if (this.#isBasicExports(packageJson))
+      {
+         // The exports field is a plain object w/ key / value strings.
+         processResult(packageJson.exports[packageJson.exportCondition], packageJson.exportCondition, processExport);
+      }
+      else
+      {
+         // Iterate over each exported sub-path resolving the export condition.
+         for (const exportPath in packageJson.exports)
          {
-            result = resolvePkg.exports(packageJson.data, exportPath, { conditions: [packageJson.exportCondition] });
-         }
-         catch (err)
-         {
-            continue;
-         }
+            let result;
 
-         if (!Array.isArray(result) || result.length === 0) { continue; }
-
-         const entryPath = result[0];
-
-         if (typeof entryPath !== 'string') { continue; }
-
-         // Currently `resolve.exports` does not allow filtering out the `default` condition.
-         // See: https://github.com/lukeed/resolve.exports/issues/30
-
-         if (!regexAllowedFiles.test(entryPath)) { continue; }
-
-         if (isGlob(exportPath) || isGlob(entryPath))
-         {
-            // Find all local files that match the entry path wildcard.
-            const globEntryPaths = globSync(entryPath);
-            for (const globEntryPath of globEntryPaths)
+            try
             {
-               processExport(path.toUnix(globEntryPath), exportPath, entryPath);
+               result = resolvePkg.exports(packageJson.data, exportPath, { conditions: [packageJson.exportCondition] });
             }
-         }
-         else
-         {
-            processExport(entryPath, exportPath);
+            catch (err)
+            {
+               continue;
+            }
+
+            if (!Array.isArray(result) || result.length === 0) { continue; }
+
+            processResult(result[0], exportPath, processExport);
          }
       }
 
@@ -186,79 +176,104 @@ export class ExportMapSupport
    }
 
    /**
-    * Specifically parse the `types` export condition with a few extra sanity checks.
+    * Detects if the exports object defines a single default export with potential export conditions. In this case the
+    * key / value pairs are all strings w/ possible null values.
     *
     * @param {import('../data/PackageJson').PackageJson} packageJson - Associated `package.json`.
     *
-    * @returns {import('../types').ExportMap} Resolved file paths for given export condition.
+    * @returns {boolean} Whether the `exports` field is a basic object with string key / values.
     */
-   static #createExportMapTypes(packageJson)
+   static #isBasicExports(packageJson)
    {
-      /** @type {import('../types').ExportMap} */
-      const exportMap = new Map();
-      const exportLog = [];
+      const exports = packageJson.exports;
 
-      const processExport = (pEntryPath, pExportPath, pGlobEntryPath) =>
+      // Determine if this is a basic exports map describing a single default export.
+      for (const exportValue of Object.values(exports))
       {
-         if (!isDTSFile(pEntryPath))
-         {
-            logger.warn(`Warning: export condition is not a DTS file; "${pExportPath}": ${pEntryPath}`);
-            return;
-         }
+         if (typeof exportValue !== 'string' && exportValue !== null) { return false; }
+      }
 
-         const filepath = path.resolve(pEntryPath);
+      return true;
+   }
 
-         if (exportMap.has(filepath)) { return; }
+   /**
+    * Processes accepted source files for any export condition that isn't `types`.
+    *
+    * @param {string}   entryPath - Target file path.
+    *
+    * @param {string}   exportPath - Target export path.
+    *
+    * @param {Function} processExport - A function to collect results.
+    */
+   static #processResultSource(entryPath, exportPath, processExport)
+   {
+      if (typeof entryPath !== 'string') { return; }
 
-         exportMap.set(filepath, { entryPath: pEntryPath, exportPath: pExportPath, globEntryPath: pGlobEntryPath });
-         exportLog.push(`"${pExportPath}": ${getRelativePath({ basepath: packageJson.dirpath, filepath })}`);
-      };
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
 
-      for (const exportPath in packageJson.exports)
+      if (!regexAllowedFiles.test(entryPath)) { return; }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
       {
-         let result;
-
-         try
+         // Find all local files that match the entry path wildcard.
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths)
          {
-            result = resolvePkg.exports(packageJson.data, exportPath, { conditions: ['types'] });
-         }
-         catch (err)
-         {
-            continue;
-         }
+            const pEntryPath = path.toUnix(globEntryPath);
 
-         if (!Array.isArray(result) || result.length === 0) { continue; }
-
-         const entryPath = result[0];
-
-         if (typeof entryPath !== 'string') { continue; }
-
-         // Currently `resolve.exports` does not allow filtering out the `default` condition.
-         // See: https://github.com/lukeed/resolve.exports/issues/30
-         if (!regexIsDTSFile.test(entryPath)) { continue; }
-
-         if (isGlob(exportPath) || isGlob(entryPath))
-         {
-            // Find all local files that match the entry path wildcard.
-            const globEntryPaths = globSync(entryPath);
-            for (const globEntryPath of globEntryPaths)
+            if (!isFile(pEntryPath))
             {
-               processExport(path.toUnix(globEntryPath), exportPath, entryPath);
+               logger.warn(`Warning: export condition is not a file; "${exportPath}": ${pEntryPath}`);
+               continue;
             }
-         }
-         else
-         {
-            processExport(entryPath, exportPath);
+
+            processExport(pEntryPath, exportPath, entryPath);
          }
       }
-
-      // Log any entry points found.
-      if (exportLog.length)
+      else
       {
-         logger.verbose(`Loading entry points from 'package.json' export condition 'types':`);
-         for (const entry of exportLog) { logger.verbose(entry); }
+         processExport(entryPath, exportPath);
       }
+   }
 
-      return exportMap;
+   /**
+    * Processes accepted type declaration files for the `types` export condition.
+    *
+    * @param {string}   entryPath - Target file path.
+    *
+    * @param {string}   exportPath - Target export path.
+    *
+    * @param {Function} processExport - A function to collect results.
+    */
+   static #processResultTypes(entryPath, exportPath, processExport)
+   {
+      if (typeof entryPath !== 'string') { return; }
+
+      // Currently `resolve.exports` does not allow filtering out the `default` condition.
+      // See: https://github.com/lukeed/resolve.exports/issues/30
+      if (!regexIsDTSFile.test(entryPath)) { return; }
+
+      if (isGlob(exportPath) || isGlob(entryPath))
+      {
+         // Find all local files that match the entry path wildcard.
+         const globEntryPaths = globSync(entryPath);
+         for (const globEntryPath of globEntryPaths)
+         {
+            const pEntryPath = path.toUnix(globEntryPath);
+
+            if (!isDTSFile(pEntryPath))
+            {
+               logger.warn(`Warning: export condition is not a DTS file; "${exportPath}": ${pEntryPath}`);
+               continue;
+            }
+
+            processExport(pEntryPath, exportPath, entryPath);
+         }
+      }
+      else
+      {
+         processExport(entryPath, exportPath);
+      }
    }
 }

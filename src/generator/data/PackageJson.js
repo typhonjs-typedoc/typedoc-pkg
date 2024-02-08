@@ -1,4 +1,5 @@
 import { isFile }             from '@typhonjs-utils/file-util';
+import { isObject }           from '@typhonjs-utils/object';
 import path                   from 'upath';
 
 import {
@@ -32,13 +33,14 @@ export class PackageJson
 
       this.#dirpath = path.dirname(filepath);
 
-      if (typeof packageObj.exports !== 'object')
+      if (isObject(packageObj.exports) ||
+       (this.#exportCondition === 'default' && typeof packageObj.exports === 'string'))
       {
-         logger.verbose(`No 'exports' conditions found in 'package.json'.`);
+         this.#exportMap = ExportMapSupport.create(this);
       }
       else
       {
-         this.#exportMap = ExportMapSupport.create(this);
+         logger.verbose(`No 'exports' entry found in 'package.json' for export condition: '${this.#exportCondition}'.`);
       }
 
       this.#process();
@@ -49,6 +51,9 @@ export class PackageJson
       return this.#packageObj;
    }
 
+   /**
+    * @returns {string} Returns the directory path.
+    */
    get dirpath()
    {
       return this.#dirpath;
@@ -83,6 +88,9 @@ export class PackageJson
       return this.#packageObj.exports;
    }
 
+   /**
+    * @returns {string} Returns the package name.
+    */
    get name()
    {
       return this.#packageObj.name;
