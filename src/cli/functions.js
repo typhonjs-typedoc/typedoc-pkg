@@ -233,7 +233,6 @@ async function processConfigFile(opts, logLevel)
       if (typeof opts['link-checker'] === 'boolean' && opts['link-checker'])
       {
          config.linkChecker = true;
-         config.logLevel = 'debug';
       }
    }
 
