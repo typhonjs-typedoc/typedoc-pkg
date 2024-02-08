@@ -77,7 +77,7 @@ To receive help about the CLI use `typedoc-pkg --help`. Please use it to learn a
 
 ```
 Options
-  -a, --api-link     Enable API linking; provide a comma separated string including 'dom', 'esm', 'worker'.
+  -a, --api-link     Enable API linking; provide a comma separated string including 'dom', 'es', 'worker'.
   -c, --config       Load default 'typedoc-pkg.config.js' or provide a path to custom config.
   -d, --typedoc      Provide a path to custom 'typedoc.json' to load.
   -e, --export       Provide a specific 'package.json' export condition to parse for entry points.  (default types)
@@ -102,13 +102,13 @@ It is recommended to use the CLI immediate mode for most standard use cases.
     "docs": "typedoc-pkg",
 
     // Will link all symbols from ES2023 APIs.
-    "docsWithLinks": "typedoc-pkg --api-link esm",
+    "docsWithLinks": "typedoc-pkg --api-link es",
 
     // Will link all symbols from ES2023 & DOM APIs.
-    "docsWithLinks2": "typedoc-pkg --api-link dom,esm",
+    "docsWithLinks2": "typedoc-pkg --api-link dom,es",
 
     // Generate combined docs for a mono-repo with all packages under `./packages`.
-    "docsMono": "typedoc-pkg --path packages --mono-repo --api-link esm"
+    "docsMono": "typedoc-pkg --path packages --mono-repo --api-link es"
   }
 }
 ```
@@ -136,7 +136,7 @@ objects.
  */
 const config = [
    // Basic example of API linking configured automatically with the local `package.json`.
-   { linkPlugins: ['esm'],  },
+   { linkPlugins: ['es'],  },
 ];
 
 export default config;
@@ -153,7 +153,7 @@ import { generateDocs } from '@typhonjs-typedoc/typedoc-pkg';
 // Generates documentation.
 await generateDocs([
   // Basic example of API linking configured automatically with the local `package.json`.
-  { linkPlugins: ['esm'] },
+  { linkPlugins: ['es'] },
 ]);
 ```
 
