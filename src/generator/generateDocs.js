@@ -39,8 +39,8 @@ export async function generateDocs(configs)
       {
          if (!logger.isValidLevel(config.logLevel))
          {
-            logger.error(
-             `Invalid options: log level '${config.logLevel}' must be 'all', 'verbose', 'info', 'warn', or 'error'.`);
+            logger.error(`Invalid options: log level must be 'off', 'fatal', 'error', 'warn', 'info', ` +
+             `'verbose', 'debug', 'trace', or 'all'; received: '${config.logLevel}'`);
             return;
          }
 
@@ -306,7 +306,7 @@ function processTypedoc(config)
  *
  * @property {Iterable<'dom' | 'es' | 'worker'>}  [linkPlugins] All API link plugins to load.
  *
- * @property {'all' | 'verbose' | 'info' | 'warn' | 'error'} [logLevel='info'] Defines the logging level; default:
+ * @property {import('@typhonjs-utils/logger-color').LogLevel} [logLevel='info'] Defines the logging level; default:
  * 'info'.
  *
  * @property {string}   [output='docs'] Provide a directory path for generated documentation.

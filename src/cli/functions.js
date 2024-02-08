@@ -84,7 +84,8 @@ async function processOptions(opts)
    {
       if (!logger.isValidLevel(opts.loglevel))
       {
-         exit(`Invalid options: log level '${opts.loglevel}' must be 'verbose', 'info', 'warn', 'error', or 'off'.`);
+         exit(`Invalid options: log level must be 'off', 'fatal', 'error', 'warn', 'info', ` +
+          `'verbose', 'debug', 'trace', or 'all'; received: '${opts.loglevel}'`);
       }
 
       logger.setLogLevel(opts.loglevel);
