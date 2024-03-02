@@ -1,7 +1,7 @@
 {
   "name": "@typhonjs-typedoc/typedoc-pkg",
   "description": "Provides a zero config CLI to create API documentation with TypeDoc from `package.json` exports conditions.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MPL-2.0",
   "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
   "type": "module",
@@ -69,6 +69,9 @@
       "NPM": "https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-pkg"
     },
     "externalSymbolLinkMappings": {
+      "@typhonjs-utils/logger-color": {
+        "LogLevel": "https://typhonjs-node-utils.github.io/logger-color/types/_typhonjs_utils_logger_color.LogLevel.html"
+      },
       "typedoc": {
         "TypeDocOptions": "https://typedoc.org/api/interfaces/Configuration.TypeDocOptions.html"
       }
@@ -80,7 +83,7 @@
   "apidocs": "https://typhonjs-typedoc.github.io/typedoc-pkg/",
   "scripts": {
     "eslint": "eslint .",
-    "docs": "node ./src/cli/index.js --api-link esm",
+    "docs": "node ./src/cli/index.js --api-link es --loglevel verbose",
     "types": "esm-d-ts gen src/generator/index.js"
   }
 }
