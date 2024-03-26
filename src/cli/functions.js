@@ -234,7 +234,7 @@ async function processConfigFile(opts, logLevel)
       {
          config.linkChecker = true;
       }
-   }
+   };
 
    // Apply any global command line options to overriding config file values.
    if (isIterable(config))
