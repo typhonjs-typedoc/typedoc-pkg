@@ -1,7 +1,7 @@
 {
   "name": "@typhonjs-typedoc/typedoc-pkg",
   "description": "Provides a zero config CLI to create API documentation with TypeDoc from `package.json` exports conditions.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MPL-2.0",
   "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
   "type": "module",
@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
-    "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.11",
+    "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.14",
     "@typhonjs-utils/file-util": "^0.1.0",
     "@typhonjs-utils/logger-color": "^0.1.0",
     "@typhonjs-utils/object": "^0.1.0",
@@ -39,11 +39,11 @@
   "devDependencies": {
     "@typhonjs-build-test/esm-d-ts" : "^0.2.2",
     "@typhonjs-config/eslint-config": "^0.6.0",
-    "eslint": "^8.53.0",
-    "type-fest": "^4.8.3"
+    "eslint": "^8.57.0",
+    "type-fest": "^4.14.0"
   },
   "peerDependencies": {
-    "typedoc": ">=0.25.1 <0.26.0",
+    "typedoc": ">=0.25.10 <0.26.0",
     "typescript": ">=5.1.0 <6"
   },
   "engines": {
