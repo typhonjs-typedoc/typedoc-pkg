@@ -55,7 +55,7 @@ export async function generateTypedoc(config)
    // Generate the documentation.
    if (project)
    {
-      await app.generateDocs(project, config.output);
+      await app.generateDocs(project, typedocOptions.out ?? config.output);
    }
    else
    {
@@ -86,6 +86,9 @@ async function createTypedocOptions(config)
    /** @type {Partial<import('typedoc').TypeDocOptions>} */
    const optionsDefault = {
       theme,
+
+      // Output directory for the generated documentation.
+      out: config.output
    };
 
    /** @type {Partial<import('typedoc').TypeDocOptions>} */
@@ -93,9 +96,6 @@ async function createTypedocOptions(config)
       entryPoints: config.entryPoints,
 
       entryPointStrategy: 'resolve',
-
-      // Output directory for the generated documentation
-      out: config.output,
    };
 
    const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, config.typedocOptions ?? {},
