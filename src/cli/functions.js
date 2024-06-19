@@ -118,12 +118,17 @@ function processConfigDefault(opts, logLevel)
 
    if (typeof opts?.path === 'string')
    {
-      if (!fs.existsSync(opts.path))
+      const paths = [...new Set(opts.path.split(':'))];
+
+      for (const path of paths)
       {
-         exit(`Invalid options: the 'path' specified does not exist.`);
+         if (!fs.existsSync(path))
+         {
+            exit(`Invalid options: the 'path' specified does not exist.`);
+         }
       }
 
-      config.path = opts.path;
+      config.path = paths;
    }
 
    if (opts?.['mono-repo'])
@@ -154,7 +159,7 @@ function processConfigDefault(opts, logLevel)
 
    // linkPlugins ----------------------------------------------------------------------------------------------------
 
-   if (typeof opts['api-link'] === 'string') { config.linkPlugins = [...new Set(opts['api-link'].split(','))]; }
+   if (typeof opts['api-link'] === 'string') { config.linkPlugins = [...new Set(opts['api-link'].split(':'))]; }
 
    // typedoc --------------------------------------------------------------------------------------------------------
 
