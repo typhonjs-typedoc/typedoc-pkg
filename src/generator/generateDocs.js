@@ -81,8 +81,7 @@ async function processConfig(origConfig)
    const config = Object.assign({
       exportCondition: 'types',
       linkChecker: false,
-      logLevel: 'info',
-      output: 'docs'
+      logLevel: 'info'
    }, origConfig);
 
    if (!(await validateConfig(config))) { return `Aborting as 'config' failed validation.`; }

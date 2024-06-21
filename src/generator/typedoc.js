@@ -86,9 +86,6 @@ async function createTypedocOptions(config)
    /** @type {Partial<import('typedoc').TypeDocOptions>} */
    const optionsDefault = {
       theme,
-
-      // Output directory for the generated documentation.
-      out: config.output
    };
 
    /** @type {Partial<import('typedoc').TypeDocOptions>} */
@@ -100,6 +97,20 @@ async function createTypedocOptions(config)
 
    const optionsDoc = Object.assign(optionsDefault, config.typedocJSON ?? {}, config.typedocOptions ?? {},
     optionsRequired);
+
+   // If config.output / CLI option is defined override any of the other TypeDoc output option configured.
+   if (typeof optionsDoc.out !== 'string' || (typeof config.output === 'string' && optionsDoc.out !== config.output))
+   {
+      // Post an info log message that the CLI output option is overriding other configured output option.
+      if (typeof optionsDoc.out === 'string' && typeof config.output === 'string' && optionsDoc.out !== config.output)
+      {
+         logger.info(
+          `Overriding TypeDoc output option '${optionsDoc.out}' with CLI configured output: '${config.output}'`);
+      }
+
+      // Fallback to `docs` if no output is configured.
+      optionsDoc.out = config.output ?? 'docs';
+   }
 
    if (!Array.isArray(optionsDoc.plugin)) { optionsDoc.plugin = []; }
 

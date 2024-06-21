@@ -74,7 +74,7 @@ export async function validateConfig(config)
       return false;
    }
 
-   if (typeof config.output !== 'string')
+   if (config.output !== void 0 && typeof config.output !== 'string')
    {
       logger.error(`Error: 'output' must be a string.`);
       return false;
