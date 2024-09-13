@@ -202,7 +202,12 @@ function setDMTOptions(config, options)
       readme: config.dmtModuleReadme
    });
 
-   if (config.dmtNavStyle) { options.setValue('dmtNavigation', { style: config.dmtNavStyle }); }
+   if (config.dmtNavStyle)
+   {
+      // Merge specific options from CLI.
+      options.setValue('dmtNavigation',
+       Object.assign(options.getValue('dmtNavigation'), { style: config.dmtNavStyle }));
+   }
 }
 
 /**
