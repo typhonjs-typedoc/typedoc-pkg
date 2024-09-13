@@ -86,6 +86,30 @@ export async function validateConfig(config)
       return false;
    }
 
+   // Initial path(s) verification.
+   if (config.path !== void 0)
+   {
+      if (typeof config.path !== 'string' && !isIterable(config.path))
+      {
+         logger.error(`Error: 'path' must be a string or iterable list of strings.`);
+         return false;
+      }
+
+      const paths = isIterable(config.path) ? config.path : [config.path];
+
+      let cntr = 0;
+
+      for (const path of paths)
+      {
+         if (typeof path !== 'string')
+         {
+            logger.error(`Error: 'path' must be a string or iterable list of strings. path[${cntr}] is not a string.`);
+            return false;
+         }
+         cntr++;
+      }
+   }
+
    if (config.monoRepo !== void 0)
    {
       if (typeof config.monoRepo !== 'boolean')
@@ -94,13 +118,21 @@ export async function validateConfig(config)
          return false;
       }
 
-      if (config.monoRepo && !isDirectory(config.path))
+      const paths = isIterable(config.path) ? config.path : [config.path];
+
+      if (paths.length > 1)
+      {
+         logger.error(`Error: 'monoRepo' is enabled and more than one 'path' is specified.`);
+         return false;
+      }
+
+      if (config.monoRepo && !isDirectory(paths[0]))
       {
          logger.error(`Error: 'monoRepo' is enabled and 'path' is not a directory.`);
          return false;
       }
 
-      const resolvePath = path.resolve(config.path);
+      const resolvePath = path.resolve(paths[0]);
       logger.verbose('Searching for all NPM packages under directory:');
       logger.verbose(resolvePath);
 
