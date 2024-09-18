@@ -1,7 +1,7 @@
 {
   "name": "@typhonjs-typedoc/typedoc-pkg",
   "description": "Provides a zero config CLI to create API documentation with TypeDoc from `package.json` exports conditions.",
-  "version": "0.0.5",
+  "version": "0.1.0-next.1",
   "license": "MPL-2.0",
   "author": "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)",
   "type": "module",
@@ -24,26 +24,27 @@
     "Michael Leahy <support@typhonjs.io> (https://github.com/typhonrt)"
   ],
   "dependencies": {
-    "@typhonjs-typedoc/ts-lib-docs": "2023.7.12",
-    "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.14",
+    "@typhonjs-typedoc/ts-lib-docs": "2024.9.18-next.1",
+    "@typhonjs-typedoc/typedoc-theme-dmt": "0.2.0-next.15",
     "@typhonjs-utils/file-util": "^0.1.0",
     "@typhonjs-utils/logger-color": "^0.1.0",
     "@typhonjs-utils/object": "^0.1.0",
     "@typhonjs-utils/package-json": "^0.7.0",
-    "glob": "^10.3.10",
+    "glob": "^11.0.0",
     "is-glob": "^4.0.3",
     "resolve.exports": "^2.0.2",
     "sade": "^1.8.1",
     "upath": "^2"
   },
   "devDependencies": {
-    "@typhonjs-build-test/esm-d-ts" : "^0.2.2",
+    "@typhonjs-build-test/esm-d-ts" : "^0.3.0-next.7",
     "@typhonjs-config/eslint-config": "^0.6.0",
     "eslint": "^8.57.0",
-    "type-fest": "^4.14.0"
+    "type-fest": "^4.25.0",
+    "typedoc": "^0.26.7"
   },
   "peerDependencies": {
-    "typedoc": ">=0.25.10 <0.26.0",
+    "typedoc": ">=0.26.7 < 0.27",
     "typescript": ">=5.1.0 <6"
   },
   "engines": {
@@ -84,6 +85,7 @@
   "scripts": {
     "eslint": "eslint .",
     "docs": "node ./src/cli/index.js --api-link es --loglevel verbose",
-    "types": "esm-d-ts gen src/generator/index.js"
+    "types": "esm-d-ts gen src/generator/index.js",
+    "help": "node ./src/cli/index.js --help"
   }
 }
