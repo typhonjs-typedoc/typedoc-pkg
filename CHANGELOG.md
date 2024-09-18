@@ -1,4 +1,8 @@
 # Changelog
+## Release 0.1.0
+- Update to latest DMT / Typedoc 0.26.6+ required.
+- Update to latest `ts-lib-docs` for ES2023 / 2024 Typescript built-in lib docs linking.
+
 ## Release 0.0.4
 - Update to latest DMT / Typedoc 0.25.10+ required.
 
