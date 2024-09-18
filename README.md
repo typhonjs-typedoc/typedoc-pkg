@@ -26,7 +26,7 @@ It is recommended to install `typedoc-pkg` as a developer dependency in `package
 ```
 Presently the CLI and `typedoc-pkg` can not be installed or used globally; this will be addressed in a future update.
 
-`typedoc-pkg` has peer dependencies for Typescript `5.1+` and TypeDoc `0.25.x`. It is not necessary to explicitly
+`typedoc-pkg` has peer dependencies for Typescript `5.1+` and TypeDoc `0.26.x`. It is not necessary to explicitly
 install either supporting package or provide `tsconfig.json` / `typedoc.json` configuration files.
 
 ## Overview:
