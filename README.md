@@ -7,6 +7,8 @@
 [![Discord](https://img.shields.io/discord/737953117999726592?label=Discord%20-%20TyphonJS&style=plastic)](https://typhonjs.io/discord/)
 [![Twitch](https://img.shields.io/twitch/status/typhonrt?style=social)](https://www.twitch.tv/typhonrt)
 
+
+
 Provides a zero configuration and self-contained CLI to generate API documentation for Javascript / Typescript projects
 with [TypeDoc](https://typedoc.org/) from a well configured `package.json` containing Typescript [type declarations](https://www.typescriptlang.org/docs/handbook/2/type-declarations.html). By default,
 `typedoc-pkg` will use the `types` export condition and fallback to `types` / `typings` properties in `package.json`.
@@ -18,7 +20,7 @@ It is recommended to install `typedoc-pkg` as a developer dependency in `package
 ```json
 {
   "devDependencies": {
-    "@typhonjs-typedoc/typedoc-pkg": "^0.0.0"
+    "@typhonjs-typedoc/typedoc-pkg": "^0.1.0"
   }
 }
 ```
@@ -77,14 +79,14 @@ To receive help about the CLI use `typedoc-pkg --help`. Please use it to learn a
 
 ```
 Options
-  -a, --api-link     Enable API linking; provide a comma separated string including 'dom', 'es', 'worker'.
+  -a, --api-link     Enable Typescript built-in library API linking; provide a colon separated string including 'es' and / or 'dom' / 'worker'.
   -c, --config       Load default 'typedoc-pkg.config.js' or provide a path to custom config.
   -d, --typedoc      Provide a path to custom 'typedoc.json' to load.
   -e, --export       Provide a specific 'package.json' export condition to parse for entry points.  (default types)
   -l, --loglevel     Specify logging level: 'verbose', 'info', 'warn', 'error', or 'off'.  (default info)
   -m, --mono-repo    When set the path must be a directory that will be scanned for all children NPM packages.
   -o, --output       Provide a directory path for generated documentation.  (default docs)
-  -p, --path         Path to a file to use as a single entry point or specific 'package.json' to load.
+  -p, --path         Path to a file(s) to use as entry points or specific 'package.json' to load. Multiple paths may be separated by colons.
   -t, --tsconfig     Provide a path to custom 'tsconfig.json' to load.
   --dmt-nav-style    [Default Modern Theme] Modify package / module navigation paths to be 'compact', 'flat', or 'full'.  (default full)
   --link-checker     Outputs warnings about unlinked documentation reflections / types during generation.
@@ -105,7 +107,7 @@ It is recommended to use the CLI immediate mode for most standard use cases.
     "docsWithLinks": "typedoc-pkg --api-link es",
 
     // Will link all symbols from ES2023 & DOM APIs.
-    "docsWithLinks2": "typedoc-pkg --api-link dom,es",
+    "docsWithLinks2": "typedoc-pkg --api-link dom:es",
 
     // Generate combined docs for a mono-repo with all packages under `./packages`.
     "docsMono": "typedoc-pkg --path packages --mono-repo --api-link es"
