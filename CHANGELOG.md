@@ -1,5 +1,8 @@
 # Changelog
-## Release 0.1.0
+## Release 0.1.1 (minor)
+- Update to [DMT 0.2.1](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
+
+## Release 0.1.0 (major)
 - Update to latest DMT / Typedoc 0.26.6+ required.
 - Update to latest `ts-lib-docs` for ES2023 / 2024 Typescript built-in lib docs linking.
 
