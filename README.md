@@ -71,7 +71,7 @@ package that has a primary export and one sub-path export. The resulting `packag
 
 Note: Typescript requires the `types` condition to always be the first entry in a conditional block in `exports`.
 
-### CLI
+### CLI:
 
 You may use the CLI via the command line or define a NPM script that invokes it.
 
@@ -144,7 +144,7 @@ const config = [
 export default config;
 ```
 
-### Programmatic Usage
+### Programmatic Usage:
 
 You may directly import `generateDocs` which is an asynchronous function that can be invoked with top
 level await.
@@ -161,7 +161,7 @@ await generateDocs([
 
 [API documentation](https://typhonjs-typedoc.github.io/typedoc-pkg/)
 
-## Automatic Assets
+## Automatic Assets:
 
 `typedoc-pkg` automatically searches for assets to add to the generated documentation. Presently, there is support for
 linking `favicon.ico` from `./favicon.ico` or `./assets/docs/favicon.ico`. In the future linking standard markdown files
@@ -174,7 +174,7 @@ the frontend in browser. This requires at minimum a way to serve / host the docs
 loading `file://` URLs locally. Several easy options are available for hosting the generated docs. Please see the wiki
 article: [Webserver Required To Serve Generated Docs](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs).
 
-## Synergies
+## Synergies:
 
 - `typedoc-pkg` utilizes the [Default Modern Theme](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) for TypeDoc.
 The DMT provides the additional features for `typedoc-pkg` to map `package.json` exports / sub-paths to documentation
@@ -195,6 +195,6 @@ and enabled when the `--api-link` CLI option is used.
 a related CLI package to easily generate Typescript declarations from ES Module source code is available via
 [@typhonjs-build-test/esm-d-ts](https://www.npmjs.com/package/@typhonjs-build-test/esm-d-ts).
 
-## Roadmap
+## Roadmap:
 - Elicit feedback from the larger developer community and improve documentation and ease of use as applicable. Please
 file an issue or get in touch if `typedoc-pkg` is not working for your project.
