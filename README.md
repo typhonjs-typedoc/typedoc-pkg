@@ -167,6 +167,13 @@ await generateDocs([
 linking `favicon.ico` from `./favicon.ico` or `./assets/docs/favicon.ico`. In the future linking standard markdown files
 like `CHANGELOG.md` may be enabled.
 
+## Deployment Requirements:
+
+`typedoc-pkg` utilizes the [Default Modern Theme (DMT)](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) which uses `ES Module` loading for the dynamic functionality on
+the frontend in browser. This requires at minimum a way to serve / host the docs. You will see a CORS error when
+loading `file://` URLs locally. Several easy options are available for hosting the generated docs. Please see the wiki
+article: [Webserver Required To Serve Generated Docs](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs).
+
 ## Synergies
 
 - `typedoc-pkg` utilizes the [Default Modern Theme](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) for TypeDoc.
