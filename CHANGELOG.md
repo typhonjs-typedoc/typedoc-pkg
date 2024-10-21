@@ -1,4 +1,7 @@
 # Changelog
+## Release 0.1.2 (minor)
+- Update to [DMT 0.2.3](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
+
 ## Release 0.1.1 (minor)
 - Update to [DMT 0.2.1](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
 
