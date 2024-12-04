@@ -11,11 +11,11 @@ with <a href="https://typedoc.org/" target="_blank" class="external">TypeDoc</a>
 <code>typedoc-pkg</code> will use the <code>types</code> export condition and fallback to <code>types</code> / <code>typings</code> properties in <code>package.json</code>.
 Alternatively, a specific export condition can be targeted for documentation generation from specific source files.</p>
 <a id="installation" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Installation:<a href="#installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>It is recommended to install <code>typedoc-pkg</code> as a developer dependency in <code>package.json</code> as follows:</p>
-<pre><code class="json"><span class="hl-0">{</span><br><span class="hl-0">  </span><span class="hl-1">"devDependencies"</span><span class="hl-0">: {</span><br><span class="hl-0">    </span><span class="hl-1">"@typhonjs-typedoc/typedoc-pkg"</span><span class="hl-0">: </span><span class="hl-2">"^0.1.0"</span><br><span class="hl-0">  }</span><br><span class="hl-0">}</span>
+<pre><code class="json"><span class="hl-0">{</span><br><span class="hl-0">  </span><span class="hl-1">"devDependencies"</span><span class="hl-0">: {</span><br><span class="hl-0">    </span><span class="hl-1">"@typhonjs-typedoc/typedoc-pkg"</span><span class="hl-0">: </span><span class="hl-2">"^0.2.0"</span><br><span class="hl-0">  }</span><br><span class="hl-0">}</span>
 </code><button type="button">Copy</button></pre>
 
 <p>Presently the CLI and <code>typedoc-pkg</code> can not be installed or used globally; this will be addressed in a future update.</p>
-<p><code>typedoc-pkg</code> has peer dependencies for Typescript <code>5.1+</code> and TypeDoc <code>0.26.x</code>. It is not necessary to explicitly
+<p><code>typedoc-pkg</code> has peer dependencies for Typescript <code>5.1+</code> and TypeDoc <code>0.27.x</code>. It is not necessary to explicitly
 install either supporting package or provide <code>tsconfig.json</code> / <code>typedoc.json</code> configuration files.</p>
 <a id="overview" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Overview:<a href="#overview" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p><code>typedoc-pkg</code> analyzes a projects <code>package.json</code> automatically configuring documentation generation with TypeDoc. This
 includes translating the entry point source files used to the actual corresponding package export names in the generated
@@ -35,6 +35,10 @@ You may also stop by the <a href="https://typhonjs.io/discord/" target="_blank" 
 <li>CLI w/ configuration file.</li>
 <li>Programmatically.</li>
 </ul>
+<p>While TypeDoc <code>0.27.x</code> has added support for loading entry points from <code>package.json</code> <code>typedoc-pkg</code> does work
+better by default by using the <code>types</code> export condition. There are many other handy features like mono-repo support and
+automatic configuration of the <a href="https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt" target="_blank" class="external">Default Modern Theme (DMT)</a>
+and <a href="https://www.npmjs.com/package/@typhonjs-typedoc/ts-lib-docs" target="_blank" class="external">TS Lib Docs</a>.</p>
 <a id="example-use-cases" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Example use cases:<a href="#example-use-cases" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>The following examples demonstrate essential usage patterns. Each example will take into consideration a hypothetical
 package that has a primary export and one sub-path export. The resulting <code>package.json</code> exports field looks like this:</p>
 <pre><code class="json"><span class="hl-0">{</span><br><span class="hl-0">  </span><span class="hl-1">"exports"</span><span class="hl-0">: {</span><br><span class="hl-0">    </span><span class="hl-1">"."</span><span class="hl-0">: {</span><br><span class="hl-0">      </span><span class="hl-1">"types"</span><span class="hl-0">: </span><span class="hl-2">"./src/main/index.d.ts"</span><span class="hl-0">,</span><br><span class="hl-0">      </span><span class="hl-1">"import"</span><span class="hl-0">: </span><span class="hl-2">"./src/main/index.js"</span><br><span class="hl-0">    },</span><br><span class="hl-0">    </span><span class="hl-1">"./sub"</span><span class="hl-0">: {</span><br><span class="hl-0">      </span><span class="hl-1">"types"</span><span class="hl-0">: </span><span class="hl-2">"./src/sub/index.d.ts"</span><span class="hl-0">,</span><br><span class="hl-0">      </span><span class="hl-1">"import"</span><span class="hl-0">: </span><span class="hl-2">"./src/sub/index.js"</span><br><span class="hl-0">    }</span><br><span class="hl-0">  }</span><br><span class="hl-0">}</span>
@@ -73,13 +77,13 @@ level await.</p>
 <a id="automatic-assets" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Automatic Assets:<a href="#automatic-assets" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p><code>typedoc-pkg</code> automatically searches for assets to add to the generated documentation. Presently, there is support for
 linking <code>favicon.ico</code> from <code>./favicon.ico</code> or <code>./assets/docs/favicon.ico</code>. In the future linking standard markdown files
 like <code>CHANGELOG.md</code> may be enabled.</p>
-<a id="deployment-requirements" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Deployment Requirements:<a href="#deployment-requirements" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p><code>typedoc-pkg</code> utilizes the <a href="https://github.com/typhonjs-typedoc/typedoc-theme-dmt" target="_blank" class="external">Default Modern Theme (DMT)</a> which uses <code>ES Module</code> loading for the dynamic functionality on
+<a id="deployment-requirements" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Deployment Requirements:<a href="#deployment-requirements" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p><code>typedoc-pkg</code> utilizes the <a href="https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt" target="_blank" class="external">Default Modern Theme (DMT)</a> which uses <code>ES Module</code> loading for the dynamic functionality on
 the frontend in browser. This requires at minimum a way to serve / host the docs. You will see a CORS error when
 loading <code>file://</code> URLs locally. Several easy options are available for hosting the generated docs. Please see the wiki
-article: <a href="https://github.com/typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs" target="_blank" class="external">Webserver Required To Serve Generated Docs</a>.</p>
+article: <a href="https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs" target="_blank" class="external">Webserver Required To Serve Generated Docs</a>.</p>
 <a id="synergies" class="tsd-anchor"></a><h2 class="tsd-anchor-link">Synergies:<a href="#synergies" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
 <li>
-<p><code>typedoc-pkg</code> utilizes the <a href="https://github.com/typhonjs-typedoc/typedoc-theme-dmt" target="_blank" class="external">Default Modern Theme</a> for TypeDoc.
+<p><code>typedoc-pkg</code> utilizes the <a href="https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt" target="_blank" class="external">Default Modern Theme</a> for TypeDoc.
 The DMT provides the additional features for <code>typedoc-pkg</code> to map <code>package.json</code> exports / sub-paths to documentation
 output, but also brings fit and finish to the default TypeDoc theme. There are additional configuration options for the
 DMT useful for package documentation. One such is <code>dmtLinksService</code> which makes it easy to link common services to the
