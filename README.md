@@ -20,13 +20,13 @@ It is recommended to install `typedoc-pkg` as a developer dependency in `package
 ```json
 {
   "devDependencies": {
-    "@typhonjs-typedoc/typedoc-pkg": "^0.1.0"
+    "@typhonjs-typedoc/typedoc-pkg": "^0.2.0"
   }
 }
 ```
 Presently the CLI and `typedoc-pkg` can not be installed or used globally; this will be addressed in a future update.
 
-`typedoc-pkg` has peer dependencies for Typescript `5.1+` and TypeDoc `0.26.x`. It is not necessary to explicitly
+`typedoc-pkg` has peer dependencies for Typescript `5.1+` and TypeDoc `0.27.x`. It is not necessary to explicitly
 install either supporting package or provide `tsconfig.json` / `typedoc.json` configuration files.
 
 ## Overview:
@@ -49,6 +49,11 @@ A design goal behind `typedoc-pkg` is to provide flexibility and near-zero confi
 - CLI immediate mode.
 - CLI w/ configuration file.
 - Programmatically.
+
+While TypeDoc `0.27.x` has added support for loading entry points from `package.json` `typedoc-pkg` does work
+better by default by using the `types` export condition. There are many other handy features like mono-repo support and
+automatic configuration of the [Default Modern Theme (DMT)](https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt)
+and [TS Lib Docs](https://www.npmjs.com/package/@typhonjs-typedoc/ts-lib-docs).
 
 ## Example use cases:
 
@@ -169,14 +174,14 @@ like `CHANGELOG.md` may be enabled.
 
 ## Deployment Requirements:
 
-`typedoc-pkg` utilizes the [Default Modern Theme (DMT)](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) which uses `ES Module` loading for the dynamic functionality on
+`typedoc-pkg` utilizes the [Default Modern Theme (DMT)](https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt) which uses `ES Module` loading for the dynamic functionality on
 the frontend in browser. This requires at minimum a way to serve / host the docs. You will see a CORS error when
 loading `file://` URLs locally. Several easy options are available for hosting the generated docs. Please see the wiki
-article: [Webserver Required To Serve Generated Docs](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs).
+article: [Webserver Required To Serve Generated Docs](https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt/wiki/Webserver-Required-To-Serve-Generated-Docs).
 
 ## Synergies:
 
-- `typedoc-pkg` utilizes the [Default Modern Theme](https://github.com/typhonjs-typedoc/typedoc-theme-dmt) for TypeDoc.
+- `typedoc-pkg` utilizes the [Default Modern Theme](https://www.npmjs.com/package/@typhonjs-typedoc/typedoc-theme-dmt) for TypeDoc.
 The DMT provides the additional features for `typedoc-pkg` to map `package.json` exports / sub-paths to documentation
 output, but also brings fit and finish to the default TypeDoc theme. There are additional configuration options for the
 DMT useful for package documentation. One such is `dmtLinksService` which makes it easy to link common services to the
