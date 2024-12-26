@@ -1,4 +1,9 @@
 # Changelog
+## Release 0.3.1 (medium)
+- Update to [DMT 0.3.1](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
+- Update to [ts-lib-docs 2024.12.25](https://github.com/typhonjs-typedoc/ts-lib-docs/releases)
+- Semver now tracks the DMT release.
+
 ## Release 0.2.0 (major)
 - Update to [DMT 0.3.0](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
 - Typedoc 0.27.3+ support.
