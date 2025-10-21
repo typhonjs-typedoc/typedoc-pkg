@@ -20,7 +20,7 @@ It is recommended to install `typedoc-pkg` as a developer dependency in `package
 ```json
 {
   "devDependencies": {
-    "@typhonjs-typedoc/typedoc-pkg": "^0.3.0"
+    "@typhonjs-typedoc/typedoc-pkg": "^0.4.0"
   }
 }
 ```
