@@ -60,4 +60,5 @@ type GenerateConfig = {
   typedocPath?: string;
 };
 
-export { type GenerateConfig, generateDocs };
+export { generateDocs };
+export type { GenerateConfig };
