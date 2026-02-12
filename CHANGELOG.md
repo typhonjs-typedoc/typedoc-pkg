@@ -1,4 +1,7 @@
 # Changelog
+## Release 0.4.1 (minor)
+- Fix link checker plugin loading (Typedoc API change).
+
 ## Release 0.4.0 (major)
 - Update to [DMT 0.4.0](https://github.com/typhonjs-typedoc/typedoc-theme-dmt/releases)
 - Typedoc 0.28.3+ support.
