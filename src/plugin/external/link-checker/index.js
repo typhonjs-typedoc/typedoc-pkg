@@ -69,7 +69,7 @@ export function load(app)
 
    app.converter.addUnknownSymbolResolver(handleUnknownSymbol);
 
-   app.renderer.once(RendererEvent.END, () =>
+   app.renderer.on(RendererEvent.END, () =>
    {
       if (failed.size)
       {
@@ -78,5 +78,5 @@ export function load(app)
          const keys = [...failed.keys()].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
          for (const key of keys) { logger.warn(failed.get(key)); }
       }
-   });
+   }, -100);
 }
