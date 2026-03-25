@@ -1,4 +1,7 @@
 # Changelog
+## Release 0.4.2 (minor)
+- Update dependencies including peer dependency for Typescript to `6.x`.
+
 ## Release 0.4.1 (minor)
 - Fix link checker plugin loading (Typedoc API change).
 
